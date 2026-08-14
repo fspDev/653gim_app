@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, ScrollView, Pressable, TextInput, Switch, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, ScrollView, Pressable, TextInput, Switch, StyleSheet, ActivityIndicator } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { colors, radius } from '../../theme/colors';
 import { getUserProfile } from '../../services/users';
@@ -8,6 +8,7 @@ import { getSession, computePercent, todayId, getRecentSessions } from '../../se
 import { getExerciseLibrary, upsertLibraryExercise } from '../../services/exerciseLibrary';
 import { changeClientPassword, updateClientProfile, usernameToEmail } from '../../services/clientAccounts';
 import { PrimaryButton, SecondaryButton, FormField } from '../../components/UI';
+import { notify, confirmAction } from '../../utils/platformAlert';
 
 export default function ClientDetailScreen({ route }) {
   const { clientId } = route.params;
@@ -122,9 +123,9 @@ export default function ClientDetailScreen({ route }) {
         )
       );
       setLibrary(await getExerciseLibrary());
-      Alert.alert('Listo', `${day.label} guardado.`);
+      notify('Listo', `${day.label} guardado.`);
     } catch (e) {
-      Alert.alert('Error', 'No se pudo guardar el plan.');
+      notify('Error', 'No se pudo guardar el plan.');
     }
     setSaving(false);
   }
@@ -138,10 +139,7 @@ export default function ClientDetailScreen({ route }) {
   }
 
   function confirmDeleteDay(day) {
-    Alert.alert('Eliminar día', `¿Eliminar "${day.label}" del plan? Esta acción no se puede deshacer.`, [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Eliminar', style: 'destructive', onPress: () => removeDay(day) },
-    ]);
+    confirmAction('Eliminar día', `¿Eliminar "${day.label}" del plan? Esta acción no se puede deshacer.`, () => removeDay(day));
   }
 
   async function removeDay(day) {
@@ -160,7 +158,7 @@ export default function ClientDetailScreen({ route }) {
       });
       setClient((prev) => ({ ...prev, phone, coachName, planType, feeStatus: feeOk ? 'ok' : 'overdue' }));
     } catch (e) {
-      Alert.alert('Error', 'No se pudieron guardar los datos.');
+      notify('Error', 'No se pudieron guardar los datos.');
     }
     setSavingInfo(false);
   }
