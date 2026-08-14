@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Alert } from 'react-native';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { colors } from '../../theme/colors';
-import { FormField, PrimaryButton } from '../../components/UI';
+import { FormField, PrimaryButton, SecondaryButton } from '../../components/UI';
 import { createClientAccount } from '../../services/clientAccounts';
 
 export default function NewClientScreen({ navigation }) {
@@ -12,6 +12,7 @@ export default function NewClientScreen({ navigation }) {
   const [coachName, setCoachName] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [created, setCreated] = useState(null);
 
   async function handleSubmit() {
     setError('');
@@ -26,11 +27,7 @@ export default function NewClientScreen({ navigation }) {
     setSubmitting(true);
     try {
       await createClientAccount({ firstName: firstName.trim(), lastName: lastName.trim(), phone, dni: dni.trim(), coachName });
-      Alert.alert(
-        'Cliente creado',
-        `Usuario: ${firstName.trim()} ${lastName.trim()}\nContraseña: ${dni.trim()}`,
-        [{ text: 'Listo', onPress: () => navigation.goBack() }]
-      );
+      setCreated({ username: `${firstName.trim()} ${lastName.trim()}`, dni: dni.trim() });
     } catch (e) {
       if (e.code === 'auth/email-already-in-use') {
         setError('Ya existe un cliente con ese nombre y apellido. Usá otro, o agregá una inicial (ej. "Franco P.").');
@@ -41,6 +38,27 @@ export default function NewClientScreen({ navigation }) {
       }
     }
     setSubmitting(false);
+  }
+
+  if (created) {
+    return (
+      <View style={[styles.screen, { padding: 20, justifyContent: 'center' }]}>
+        <View style={styles.successBox}>
+          <Text style={styles.successTitle}>✓ Cliente creado</Text>
+          <Text style={styles.previewLabel}>Datos de acceso</Text>
+          <Text style={styles.previewText}>Usuario: {created.username}</Text>
+          <Text style={styles.previewText}>Contraseña: {created.dni}</Text>
+        </View>
+        <PrimaryButton title="Volver a clientes" onPress={() => navigation.goBack()} style={{ marginTop: 20 }} />
+        <SecondaryButton
+          title="Cargar otro cliente"
+          onPress={() => {
+            setFirstName(''); setLastName(''); setPhone(''); setDni(''); setCoachName(''); setCreated(null);
+          }}
+          style={{ marginTop: 10 }}
+        />
+      </View>
+    );
   }
 
   const previewUser = firstName.trim() && lastName.trim() ? `${firstName.trim()} ${lastName.trim()}` : '';
@@ -86,6 +104,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.black2, borderWidth: 1, borderColor: colors.border,
     borderRadius: 12, padding: 14, marginBottom: 18,
   },
+  successBox: {
+    backgroundColor: colors.black2, borderWidth: 1, borderColor: 'rgba(46,204,113,0.35)',
+    borderRadius: 16, padding: 20,
+  },
+  successTitle: { color: colors.green, fontSize: 18, fontWeight: '800', marginBottom: 16 },
   previewLabel: { color: colors.gray1, fontSize: 10.5, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 },
   previewText: { color: colors.white, fontSize: 13, fontWeight: '600', marginTop: 2 },
   error: { color: '#ff6b76', fontSize: 12.5, fontWeight: '600', marginBottom: 14 },
