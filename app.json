@@ -24,7 +24,8 @@
       }
     },
     "web": {
-      "favicon": "./assets/logo653.png"
+      "favicon": "./assets/logo653.png",
+      "bundler": "metro"
     },
     "plugins": [
       [
@@ -34,6 +35,9 @@
           "color": "#e3202f"
         }
       ]
-    ]
+    ],
+    "experiments": {
+      "baseUrl": "/653gim_app"
+    }
   }
 }
