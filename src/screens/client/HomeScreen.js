@@ -6,7 +6,6 @@ import { useAuth } from '../../context/AuthContext';
 import RingProgress from '../../components/RingProgress';
 import { getPlanDays } from '../../services/plans';
 import { getSession, saveSession, todayId, computePercent } from '../../services/sessions';
-import { seedDemoPlan } from '../../services/seed';
 import { PrimaryButton } from '../../components/UI';
 
 const WEEK_LABELS = { mon: 'LUN', tue: 'MAR', wed: 'MIÉ', thu: 'JUE', fri: 'VIE', sat: 'SÁB', sun: 'DOM' };
@@ -22,12 +21,14 @@ export default function HomeScreen({ navigation }) {
   const load = useCallback(async () => {
     if (!user) return;
     setLoading(true);
-    let planDays = await getPlanDays(user.uid);
-    if (planDays.length === 0) {
-      await seedDemoPlan(user.uid);
-      planDays = await getPlanDays(user.uid);
-    }
+    const planDays = await getPlanDays(user.uid);
     setDays(planDays);
+
+    if (planDays.length === 0) {
+      setSession(null);
+      setLoading(false);
+      return;
+    }
 
     const existing = await getSession(user.uid, todayId());
     if (existing) {
@@ -126,41 +127,58 @@ export default function HomeScreen({ navigation }) {
         <Text style={styles.bold}>{profile?.planType === 'weekly' ? 'Semanal' : 'Diario'}</Text>
       </Text>
 
-      <View style={styles.progressCard}>
-        <RingProgress percent={percent} />
-        <View style={{ flex: 1, marginLeft: 16 }}>
-          <Text style={styles.progressTitle}>{currentDay?.label || 'Rutina'} en curso</Text>
-          <Text style={styles.progressSub}>
-            {doneCount} de {totalCount} ejercicios completados
-          </Text>
+      {days.length === 0 ? (
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptyTitle}>Todavía no tenés un plan cargado</Text>
+          <Text style={styles.emptySub}>Hablá con tu profe para que te arme la rutina.</Text>
         </View>
-      </View>
+      ) : (
+        <>
+          <View style={styles.progressCard}>
+            <RingProgress percent={percent} />
+            <View style={{ flex: 1, marginLeft: 16 }}>
+              <Text style={styles.progressTitle}>{currentDay?.label || 'Rutina'} en curso</Text>
+              <Text style={styles.progressSub}>
+                {doneCount} de {totalCount} ejercicios completados
+              </Text>
+            </View>
+          </View>
 
-      <Text style={typography.label.color ? null : null} />
-      <Text style={styles.sectionLabel}>Elegí tu día</Text>
-      <View style={styles.dayPillsRow}>
-        {days.map((d) => (
-          <Pressable
-            key={d.id}
-            onPress={() => selectDay(d)}
-            style={[styles.dayPill, session?.dayId === d.id && styles.dayPillActive]}
-          >
-            <Text style={[styles.dayPillText, session?.dayId === d.id && styles.dayPillTextActive]}>
-              {d.label}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
+          <Text style={styles.sectionLabel}>Elegí tu día</Text>
+          <View style={styles.dayPillsRow}>
+            {days.map((d) => (
+              <Pressable
+                key={d.id}
+                onPress={() => selectDay(d)}
+                style={[styles.dayPill, session?.dayId === d.id && styles.dayPillActive]}
+              >
+                <Text style={[styles.dayPillText, session?.dayId === d.id && styles.dayPillTextActive]}>
+                  {d.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
 
-      <ExerciseGroup title="Core" exercises={coreEx} onPress={openExercise} />
-      <ExerciseGroup title="Fuerza" exercises={fuerzaEx} onPress={openExercise} />
+          {coreEx.length === 0 && fuerzaEx.length === 0 ? (
+            <View style={styles.emptyCard}>
+              <Text style={styles.emptyTitle}>{currentDay?.label} sin ejercicios todavía</Text>
+              <Text style={styles.emptySub}>Tu profe está armando esta rutina.</Text>
+            </View>
+          ) : (
+            <>
+              <ExerciseGroup title="Core" exercises={coreEx} onPress={openExercise} />
+              <ExerciseGroup title="Fuerza" exercises={fuerzaEx} onPress={openExercise} />
+            </>
+          )}
 
-      {nextExercise && (
-        <PrimaryButton
-          title="Continuar rutina →"
-          onPress={() => openExercise(nextExercise)}
-          style={{ marginTop: 12 }}
-        />
+          {nextExercise && (
+            <PrimaryButton
+              title="Continuar rutina →"
+              onPress={() => openExercise(nextExercise)}
+              style={{ marginTop: 12 }}
+            />
+          )}
+        </>
       )}
     </ScrollView>
   );
@@ -219,6 +237,12 @@ const styles = StyleSheet.create({
   greeting: { color: colors.white, fontSize: 24, fontWeight: '800', letterSpacing: -0.4 },
   greetingSub: { color: colors.gray1, fontSize: 13, marginTop: 3, marginBottom: 20 },
   bold: { color: colors.white, fontWeight: '700' },
+  emptyCard: {
+    backgroundColor: colors.black2, borderWidth: 1, borderColor: colors.border,
+    borderRadius: radius.lg, padding: 22, alignItems: 'center', marginTop: 8,
+  },
+  emptyTitle: { color: colors.white, fontSize: 14, fontWeight: '700', textAlign: 'center' },
+  emptySub: { color: colors.gray1, fontSize: 12.5, textAlign: 'center', marginTop: 6 },
   progressCard: {
     flexDirection: 'row', alignItems: 'center', backgroundColor: colors.black2,
     borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, padding: 18, marginBottom: 6,

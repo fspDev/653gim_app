@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc, collection, getDocs, orderBy, query } from 'firebase/firestore';
+import { doc, getDoc, setDoc, deleteDoc, collection, getDocs, orderBy, query } from 'firebase/firestore';
 import { db } from '../config/firebase';
 
 export async function getPlanDays(uid) {
@@ -14,6 +14,10 @@ export async function getPlanDay(uid, dayId) {
 
 export async function savePlanDay(uid, dayId, data) {
   await setDoc(doc(db, 'gymPlans', uid, 'days', dayId), { ...data, updatedAt: Date.now() }, { merge: true });
+}
+
+export async function deletePlanDay(uid, dayId) {
+  await deleteDoc(doc(db, 'gymPlans', uid, 'days', dayId));
 }
 
 export function newExercise({ name, sets, reps, restSeconds, order }) {
