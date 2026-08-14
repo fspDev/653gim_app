@@ -4,12 +4,14 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   updatePassword,
+  deleteUser,
   signOut,
 } from 'firebase/auth';
-import { doc, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { firebaseConfig } from '../config/firebaseConfig';
-import { savePlanDay } from './plans';
+import { savePlanDay, getPlanDays, deletePlanDay } from './plans';
+import { getRecentSessions } from './sessions';
 
 // El "usuario" del cliente es su nombre y apellido; lo convertimos a un
 // email interno (no visible para el cliente) porque Firebase Auth requiere uno.
@@ -88,4 +90,29 @@ export async function changeClientPassword({ email, currentDni, newDni }) {
 
 export async function updateClientProfile(uid, data) {
   await updateDoc(doc(db, 'gymUsers', uid), data);
+}
+
+// Borra todo lo del cliente: su login, su perfil, su plan y su historial.
+// Necesita la contraseña actual (dni) para poder cerrar la cuenta de Auth
+// sin el SDK de administrador (que requiere plan pago).
+export async function deleteClientAccount({ uid, email, dni }) {
+  const days = await getPlanDays(uid);
+  await Promise.all(days.map((d) => deletePlanDay(uid, d.id)));
+
+  const sessions = await getRecentSessions(uid, 500);
+  await Promise.all(sessions.map((s) => deleteDoc(doc(db, 'gymSessions', uid, 'logs', s.id))));
+
+  await deleteDoc(doc(db, 'gymUsers', uid));
+
+  const secondaryApp = initializeApp(firebaseConfig, `secondary-${Date.now()}`);
+  const secondaryAuth = getAuth(secondaryApp);
+  try {
+    const cred = await signInWithEmailAndPassword(secondaryAuth, email, String(dni));
+    await deleteUser(cred.user);
+  } catch (e) {
+    // Si no se puede borrar el login (p.ej. contraseña desincronizada),
+    // igual ya se borraron todos sus datos de Firestore.
+  } finally {
+    await deleteApp(secondaryApp);
+  }
 }

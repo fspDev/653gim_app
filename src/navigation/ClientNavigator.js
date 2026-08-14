@@ -5,7 +5,6 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { colors } from '../theme/colors';
 import HomeScreen from '../screens/client/HomeScreen';
 import ProgressScreen from '../screens/client/ProgressScreen';
-import CalendarScreen from '../screens/client/CalendarScreen';
 import SettingsScreen from '../screens/client/SettingsScreen';
 import ExerciseExecutionScreen from '../screens/client/ExerciseExecutionScreen';
 
@@ -29,7 +28,6 @@ function ClientTabs() {
     >
       <Tab.Screen name="Hoy" component={HomeScreen} options={{ tabBarIcon: () => <Icon symbol="🏠" /> }} />
       <Tab.Screen name="Progreso" component={ProgressScreen} options={{ tabBarIcon: () => <Icon symbol="📈" /> }} />
-      <Tab.Screen name="Calendario" component={CalendarScreen} options={{ tabBarIcon: () => <Icon symbol="📅" /> }} />
       <Tab.Screen name="Ajustes" component={SettingsScreen} options={{ tabBarIcon: () => <Icon symbol="⚙️" /> }} />
     </Tab.Navigator>
   );

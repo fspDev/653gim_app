@@ -6,11 +6,16 @@ import { getUserProfile } from '../../services/users';
 import { getPlanDays, savePlanDay, deletePlanDay, newExercise } from '../../services/plans';
 import { getSession, computePercent, todayId, getRecentSessions } from '../../services/sessions';
 import { getExerciseLibrary, upsertLibraryExercise } from '../../services/exerciseLibrary';
-import { changeClientPassword, updateClientProfile, usernameToEmail } from '../../services/clientAccounts';
+import {
+  changeClientPassword,
+  updateClientProfile,
+  usernameToEmail,
+  deleteClientAccount,
+} from '../../services/clientAccounts';
 import { PrimaryButton, SecondaryButton, FormField } from '../../components/UI';
 import { notify, confirmAction } from '../../utils/platformAlert';
 
-export default function ClientDetailScreen({ route }) {
+export default function ClientDetailScreen({ route, navigation }) {
   const { clientId } = route.params;
   const [client, setClient] = useState(null);
   const [days, setDays] = useState([]);
@@ -24,7 +29,9 @@ export default function ClientDetailScreen({ route }) {
   const [coachName, setCoachName] = useState('');
   const [planType, setPlanType] = useState('weekly');
   const [feeOk, setFeeOk] = useState(true);
+  const [feeDueDate, setFeeDueDate] = useState('');
   const [savingInfo, setSavingInfo] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const [newDni, setNewDni] = useState('');
   const [changingPassword, setChangingPassword] = useState(false);
@@ -41,6 +48,7 @@ export default function ClientDetailScreen({ route }) {
     setCoachName(profile?.coachName || '');
     setPlanType(profile?.planType || 'weekly');
     setFeeOk((profile?.feeStatus || 'ok') === 'ok');
+    setFeeDueDate(profile?.feeDueDate || '');
 
     const planDays = await getPlanDays(clientId);
     setDays(planDays);
@@ -154,13 +162,36 @@ export default function ClientDetailScreen({ route }) {
         phone,
         coachName,
         planType,
+        feeDueDate,
         feeStatus: feeOk ? 'ok' : 'overdue',
       });
-      setClient((prev) => ({ ...prev, phone, coachName, planType, feeStatus: feeOk ? 'ok' : 'overdue' }));
+      setClient((prev) => ({ ...prev, phone, coachName, planType, feeDueDate, feeStatus: feeOk ? 'ok' : 'overdue' }));
+      notify('Listo', 'Datos guardados.');
     } catch (e) {
       notify('Error', 'No se pudieron guardar los datos.');
     }
     setSavingInfo(false);
+  }
+
+  function confirmDeleteClient() {
+    confirmAction(
+      'Eliminar cliente',
+      `¿Eliminar a ${client?.firstName} ${client?.lastName}? Se borra su login, su plan y todo su historial. No se puede deshacer.`,
+      handleDeleteClient
+    );
+  }
+
+  async function handleDeleteClient() {
+    setDeleting(true);
+    try {
+      const email = usernameToEmail(client.username || `${client.firstName} ${client.lastName}`);
+      await deleteClientAccount({ uid: clientId, email, dni: client.dni });
+      notify('Listo', 'Cliente eliminado.');
+      navigation.goBack();
+    } catch (e) {
+      notify('Error', 'No se pudo eliminar al cliente.');
+      setDeleting(false);
+    }
   }
 
   async function handleChangePassword() {
@@ -239,6 +270,13 @@ export default function ClientDetailScreen({ route }) {
         <Text style={styles.feeLabel}>Cuota al día</Text>
         <Switch value={feeOk} onValueChange={setFeeOk} trackColor={{ false: colors.black3, true: colors.green }} thumbColor="#fff" />
       </View>
+
+      <FormField
+        label="Próximo vencimiento de cuota (AAAA-MM-DD)"
+        value={feeDueDate}
+        onChangeText={setFeeDueDate}
+        placeholder="2026-09-10"
+      />
 
       <PrimaryButton
         title={savingInfo ? 'Guardando...' : 'Guardar datos'}
@@ -322,6 +360,15 @@ export default function ClientDetailScreen({ route }) {
       ))}
 
       <SecondaryButton title="+ Agregar día" onPress={addDay} style={{ marginBottom: 30 }} />
+
+      <Text style={styles.sectionLabel}>Zona de peligro</Text>
+      <Pressable
+        style={styles.deleteClientBtn}
+        onPress={confirmDeleteClient}
+        disabled={deleting}
+      >
+        <Text style={styles.deleteClientText}>{deleting ? 'Eliminando...' : 'Eliminar cliente'}</Text>
+      </Pressable>
     </ScrollView>
   );
 }
@@ -439,4 +486,9 @@ const styles = StyleSheet.create({
   pickerRowMeta: { color: colors.gray1, fontSize: 11.5 },
   pickerCreateBtn: { paddingVertical: 10 },
   pickerCreateText: { color: colors.red, fontSize: 13, fontWeight: '700' },
+  deleteClientBtn: {
+    borderWidth: 1, borderColor: 'rgba(227,32,47,0.4)', backgroundColor: colors.redDim,
+    borderRadius: radius.md, paddingVertical: 14, alignItems: 'center', marginBottom: 40,
+  },
+  deleteClientText: { color: '#ff6b76', fontSize: 14, fontWeight: '800' },
 });

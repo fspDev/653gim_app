@@ -61,6 +61,18 @@ export default function ExerciseExecutionScreen({ route, navigation }) {
     }
   }
 
+  async function adjustRestDuration(delta) {
+    const nextValue = Math.max(15, exercise.restSeconds + delta);
+    const updatedExercise = { ...exercise, restSeconds: nextValue };
+    const updatedExercises = session.exercises.map((e) =>
+      e.exerciseId === exerciseId ? updatedExercise : e
+    );
+    const updatedSession = { ...session, exercises: updatedExercises };
+    setExercise(updatedExercise);
+    setSession(updatedSession);
+    await saveSession(user.uid, todayId(), updatedSession);
+  }
+
   function startRest(seconds) {
     setRestTotal(seconds);
     setRestLeft(seconds);
@@ -144,6 +156,21 @@ export default function ExerciseExecutionScreen({ route, navigation }) {
         </View>
       )}
 
+      {!finished && (
+        <View style={styles.restEditRow}>
+          <Text style={styles.restEditLabel}>Descanso entre series</Text>
+          <View style={styles.restEditControls}>
+            <Pressable style={styles.restEditBtn} onPress={() => adjustRestDuration(-15)}>
+              <Text style={styles.restEditBtnText}>−15s</Text>
+            </Pressable>
+            <Text style={styles.restEditValue}>{restLabel}</Text>
+            <Pressable style={styles.restEditBtn} onPress={() => adjustRestDuration(15)}>
+              <Text style={styles.restEditBtnText}>+15s</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
+
       <View style={{ flex: 1 }} />
 
       {!finished && (
@@ -214,6 +241,12 @@ const styles = StyleSheet.create({
   stepBtnText: { color: '#fff', fontSize: 20, fontWeight: '700' },
   weightVal: { color: colors.white, fontSize: 30, fontWeight: '800' },
   weightUnit: { color: colors.gray1, fontSize: 11, fontWeight: '700', letterSpacing: 1 },
+  restEditRow: { alignItems: 'center', marginTop: 22 },
+  restEditLabel: { color: colors.gray1, fontSize: 11, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 10 },
+  restEditControls: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  restEditBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 18, backgroundColor: colors.black3, borderWidth: 1, borderColor: colors.border },
+  restEditBtnText: { color: '#fff', fontSize: 12, fontWeight: '700' },
+  restEditValue: { color: colors.white, fontSize: 15, fontWeight: '800', minWidth: 50, textAlign: 'center' },
   primaryBtn: { backgroundColor: colors.red, paddingVertical: 16, borderRadius: radius.md, alignItems: 'center', marginBottom: 10 },
   primaryBtnText: { color: '#fff', fontSize: 15, fontWeight: '800' },
   restOverlay: { flex: 1, backgroundColor: colors.black, alignItems: 'center', justifyContent: 'center' },

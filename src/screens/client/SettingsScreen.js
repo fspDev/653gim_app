@@ -3,7 +3,7 @@ import { View, Text, ScrollView, Pressable, Switch, StyleSheet } from 'react-nat
 import { colors, radius } from '../../theme/colors';
 import { useAuth } from '../../context/AuthContext';
 import { updateUserProfile } from '../../services/users';
-import { scheduleGymDayReminders } from '../../services/notifications';
+import { scheduleGymDayReminders, scheduleFeeReminder } from '../../services/notifications';
 import { SecondaryButton } from '../../components/UI';
 
 const WEEK_DAYS = [
@@ -35,10 +35,11 @@ export default function SettingsScreen() {
     const next = { ...notifPrefs, [key]: !notifPrefs[key] };
     setNotifPrefs(next);
     await updateUserProfile(user.uid, { notifPrefs: next });
-    if (key === 'gymReminder') {
-      if (next.gymReminder) {
-        await scheduleGymDayReminders(weeklyDays, profile?.sessionTime);
-      }
+    if (key === 'gymReminder' && next.gymReminder) {
+      await scheduleGymDayReminders(weeklyDays, profile?.sessionTime);
+    }
+    if (key === 'feeReminder' && next.feeReminder) {
+      await scheduleFeeReminder(profile?.feeDueDate);
     }
   }
 
