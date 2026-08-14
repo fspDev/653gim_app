@@ -77,9 +77,9 @@ export function AuthProvider({ children }) {
 function mapAuthError(e) {
   const code = e?.code || '';
   if (code.includes('invalid-credential') || code.includes('wrong-password') || code.includes('user-not-found')) {
-    return 'Revisá tu email y contraseña.';
+    return 'Revisá tu usuario y contraseña.';
   }
-  if (code.includes('invalid-email')) return 'El email no es válido.';
+  if (code.includes('invalid-email')) return 'Ese nombre de usuario no es válido.';
   if (code.includes('too-many-requests')) return 'Demasiados intentos. Probá de nuevo en unos minutos.';
   return 'No pudimos iniciar sesión. Probá de nuevo.';
 }

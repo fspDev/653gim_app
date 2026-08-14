@@ -4,7 +4,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { colors, radius } from '../../theme/colors';
 import { useAuth } from '../../context/AuthContext';
 import { getClients } from '../../services/users';
-import { Badge } from '../../components/UI';
+import { Badge, PrimaryButton } from '../../components/UI';
 
 export default function ClientsListScreen({ navigation }) {
   const { logout } = useAuth();
@@ -62,6 +62,8 @@ export default function ClientsListScreen({ navigation }) {
           <Text style={styles.statLabel}>Cuotas vencidas</Text>
         </View>
       </View>
+
+      <PrimaryButton title="+ Nuevo cliente" onPress={() => navigation.navigate('NewClient')} />
 
       <Text style={styles.sectionLabel}>Clientes</Text>
       {loading && <ActivityIndicator color={colors.red} />}

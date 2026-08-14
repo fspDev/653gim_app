@@ -3,12 +3,13 @@ import { View, Text, Image, StyleSheet, ScrollView, KeyboardAvoidingView, Platfo
 import { PrimaryButton, FormField } from '../../components/UI';
 import { colors } from '../../theme/colors';
 import { useAuth } from '../../context/AuthContext';
+import { usernameToEmail } from '../../services/clientAccounts';
 
 export default function LoginScreen() {
   const [mode, setMode] = useState('client'); // 'client' | 'admin'
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [username, setUsername] = useState('');
+  const [clientName, setClientName] = useState('');
+  const [clientDni, setClientDni] = useState('');
+  const [adminUsername, setAdminUsername] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const { loginClient, loginAdmin, authError } = useAuth();
@@ -16,9 +17,9 @@ export default function LoginScreen() {
   async function handleSubmit() {
     setSubmitting(true);
     if (mode === 'client') {
-      await loginClient(email, password);
+      await loginClient(usernameToEmail(clientName), clientDni);
     } else {
-      await loginAdmin(username, adminPassword);
+      await loginAdmin(adminUsername, adminPassword);
     }
     setSubmitting(false);
   }
@@ -32,33 +33,33 @@ export default function LoginScreen() {
         <Image source={require('../../../assets/logo653.png')} style={styles.logo} />
         <Text style={styles.title}>{mode === 'client' ? 'Bienvenido' : 'Panel Admin'}</Text>
         <Text style={styles.subtitle}>
-          {mode === 'client' ? 'Ingresá con tu mail para ver tu plan' : 'Acceso exclusivo para profes y staff'}
+          {mode === 'client' ? 'Ingresá con tu nombre y tu DNI' : 'Acceso exclusivo para profes y staff'}
         </Text>
 
         {mode === 'client' ? (
           <>
             <FormField
-              label="Email"
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              placeholder="franco@mail.com"
+              label="Usuario (nombre y apellido)"
+              value={clientName}
+              onChangeText={setClientName}
+              autoCapitalize="words"
+              placeholder="Franco Pereyra"
             />
             <FormField
-              label="Contraseña"
-              value={password}
-              onChangeText={setPassword}
+              label="Contraseña (DNI)"
+              value={clientDni}
+              onChangeText={setClientDni}
               secureTextEntry
-              placeholder="••••••••"
+              keyboardType="number-pad"
+              placeholder="38221904"
             />
           </>
         ) : (
           <>
             <FormField
               label="Usuario"
-              value={username}
-              onChangeText={setUsername}
+              value={adminUsername}
+              onChangeText={setAdminUsername}
               autoCapitalize="none"
               placeholder="Admin"
             />
