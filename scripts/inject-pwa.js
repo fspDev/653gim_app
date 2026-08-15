@@ -17,7 +17,12 @@ const headTags = `
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="653 Gym" />
+  <meta name="google" content="notranslate" />
 `;
+
+// El template de Expo genera <html lang="en">, pero la app está en español;
+// eso es lo que le hace ofrecer traducir la página cada vez que se abre.
+html = html.replace('<html lang="en">', '<html lang="es" translate="no">');
 
 const swScript = `
   <script>
@@ -37,4 +42,10 @@ if (!html.includes("register('/653gim_app/sw.js')")) {
 }
 
 fs.writeFileSync(indexPath, html, 'utf8');
-console.log('PWA tags injected into dist/index.html');
+
+// GitHub Pages usa Jekyll por defecto, que ignora carpetas que empiezan con
+// "_" (como _expo). Este archivo lo desactiva. `expo export` borra y
+// recrea dist/ en cada build, así que hay que volver a crearlo siempre.
+fs.writeFileSync(path.join(__dirname, '..', 'dist', '.nojekyll'), '');
+
+console.log('PWA tags injected + .nojekyll created in dist/');

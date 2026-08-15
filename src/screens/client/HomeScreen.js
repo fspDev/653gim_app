@@ -6,7 +6,8 @@ import { useAuth } from '../../context/AuthContext';
 import RingProgress from '../../components/RingProgress';
 import { getPlanDays } from '../../services/plans';
 import { getSession, saveSession, todayId, computePercent } from '../../services/sessions';
-import { PrimaryButton } from '../../components/UI';
+import { PrimaryButton, SecondaryButton } from '../../components/UI';
+import { confirmAction } from '../../utils/platformAlert';
 
 const WEEK_LABELS = { mon: 'LUN', tue: 'MAR', wed: 'MIÉ', thu: 'JUE', fri: 'VIE', sat: 'SÁB', sun: 'DOM' };
 const WEEK_ORDER = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
@@ -82,6 +83,23 @@ export default function HomeScreen({ navigation }) {
     navigation.navigate('ExerciseExecution', { exerciseId: exercise.exerciseId, dayId: session.dayId });
   }
 
+  function confirmResetDay() {
+    const day = days.find((d) => d.id === session.dayId);
+    confirmAction(
+      'Reiniciar día',
+      `Se van a borrar todas las series marcadas hoy en ${day?.label || 'este día'}. ¿Continuar?`,
+      resetDay
+    );
+  }
+
+  async function resetDay() {
+    const day = days.find((d) => d.id === session.dayId);
+    if (!day) return;
+    const fresh = buildFreshSession(day);
+    setSession(fresh);
+    await saveSession(user.uid, todayId(), fresh);
+  }
+
   if (loading) {
     return (
       <View style={[styles.screen, { alignItems: 'center', justifyContent: 'center' }]}>
@@ -143,6 +161,15 @@ export default function HomeScreen({ navigation }) {
               </Text>
             </View>
           </View>
+
+          {doneCount > 0 && (
+            <SecondaryButton
+              title="↺ Reiniciar día"
+              onPress={confirmResetDay}
+              style={{ marginTop: 10 }}
+              textStyle={{ color: colors.gray1 }}
+            />
+          )}
 
           <Text style={styles.sectionLabel}>Elegí tu día</Text>
           <View style={styles.dayPillsRow}>
