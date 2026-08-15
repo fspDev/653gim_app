@@ -39,6 +39,7 @@ export default function HomeScreen({ navigation }) {
       if (first) {
         const fresh = buildFreshSession(first);
         setSession(fresh);
+        await saveSession(user.uid, todayId(), fresh);
       }
     }
     setLoading(false);

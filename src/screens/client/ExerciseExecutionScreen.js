@@ -31,10 +31,23 @@ export default function ExerciseExecutionScreen({ route, navigation }) {
     return () => clearInterval(intervalRef.current);
   }, [exerciseId]);
 
-  if (loading || !exercise) {
+  if (loading) {
     return (
       <View style={[styles.screen, { alignItems: 'center', justifyContent: 'center' }]}>
         <ActivityIndicator color={colors.red} />
+      </View>
+    );
+  }
+
+  if (!exercise) {
+    return (
+      <View style={[styles.screen, { alignItems: 'center', justifyContent: 'center' }]}>
+        <Text style={{ color: colors.white, fontSize: 14, fontWeight: '700', marginBottom: 16, textAlign: 'center' }}>
+          No pudimos cargar este ejercicio.
+        </Text>
+        <Pressable style={styles.primaryBtn} onPress={() => navigation.goBack()}>
+          <Text style={styles.primaryBtnText}>Volver</Text>
+        </Pressable>
       </View>
     );
   }
