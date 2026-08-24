@@ -33,10 +33,25 @@ export async function ensureNotificationPermission() {
   return newStatus === 'granted';
 }
 
-function showWebNotification(title, body) {
+async function showWebNotification(title, body) {
   if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+  const options = {
+    body,
+    icon: '/653gim_app/logo653.png',
+    vibrate: [300, 100, 300], // solo lo respeta showNotification() de un Service Worker
+  };
   try {
-    new Notification(title, { body, icon: '/653gim_app/logo653.png' });
+    // Pasar por el Service Worker es lo que permite que el navegador dispare
+    // la vibración: navigator.vibrate() directo requiere un toque reciente,
+    // y esta notificación se dispara desde un timer, no de un tap.
+    if ('serviceWorker' in navigator) {
+      const reg = await navigator.serviceWorker.ready;
+      if (reg?.showNotification) {
+        await reg.showNotification(title, options);
+        return;
+      }
+    }
+    new Notification(title, options);
   } catch (e) {}
 }
 
