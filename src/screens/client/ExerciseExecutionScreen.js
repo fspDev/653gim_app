@@ -1,24 +1,20 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ActivityIndicator, Modal } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { colors, radius } from '../../theme/colors';
 import { useAuth } from '../../context/AuthContext';
+import { useRestTimer } from '../../context/RestTimerContext';
 import { getSession, saveSession, todayId } from '../../services/sessions';
-import { scheduleRestEndNotification, cancelNotification } from '../../services/notifications';
+import { formatMMSS } from '../../utils/time';
 
 export default function ExerciseExecutionScreen({ route, navigation }) {
   const { exerciseId } = route.params;
   const { user } = useAuth();
+  const restTimer = useRestTimer();
   const [session, setSession] = useState(null);
   const [exercise, setExercise] = useState(null);
   const [weight, setWeight] = useState(20);
   const [loading, setLoading] = useState(true);
-
-  const [resting, setResting] = useState(false);
-  const [restLeft, setRestLeft] = useState(0);
-  const [restTotal, setRestTotal] = useState(0);
-  const notifIdRef = useRef(null);
-  const intervalRef = useRef(null);
 
   useEffect(() => {
     (async () => {
@@ -28,7 +24,6 @@ export default function ExerciseExecutionScreen({ route, navigation }) {
       setExercise(ex);
       setLoading(false);
     })();
-    return () => clearInterval(intervalRef.current);
   }, [exerciseId]);
 
   if (loading) {
@@ -55,6 +50,7 @@ export default function ExerciseExecutionScreen({ route, navigation }) {
   const doneSets = exercise.sets.length;
   const currentSerie = Math.min(doneSets + 1, exercise.targetSets);
   const finished = doneSets >= exercise.targetSets;
+  const isResting = restTimer.resting && restTimer.exerciseId === exerciseId;
 
   async function completeSerie() {
     const updatedSets = [...exercise.sets, { weight, reps: exercise.reps, completedAt: Date.now() }];
@@ -68,7 +64,12 @@ export default function ExerciseExecutionScreen({ route, navigation }) {
     await saveSession(user.uid, todayId(), updatedSession);
 
     if (updatedSets.length < exercise.targetSets) {
-      startRest(exercise.restSeconds);
+      restTimer.start({
+        exerciseId,
+        exerciseName: exercise.name,
+        dayId: session.dayId,
+        seconds: exercise.restSeconds,
+      });
     } else {
       setTimeout(() => navigation.goBack(), 500);
     }
@@ -86,42 +87,9 @@ export default function ExerciseExecutionScreen({ route, navigation }) {
     await saveSession(user.uid, todayId(), updatedSession);
   }
 
-  function startRest(seconds) {
-    setRestTotal(seconds);
-    setRestLeft(seconds);
-    setResting(true);
-    scheduleRestEndNotification(seconds).then((id) => {
-      notifIdRef.current = id;
-    });
-    clearInterval(intervalRef.current);
-    intervalRef.current = setInterval(() => {
-      setRestLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(intervalRef.current);
-          setResting(false);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  }
-
-  function adjustRest(delta) {
-    setRestLeft((prev) => Math.max(0, prev + delta));
-    setRestTotal((prev) => Math.max(prev, restLeft + delta));
-  }
-
-  function skipRest() {
-    clearInterval(intervalRef.current);
-    cancelNotification(notifIdRef.current);
-    setResting(false);
-  }
-
-  const restLabel = exercise.restSeconds >= 60 ? `${Math.round(exercise.restSeconds / 60)}min` : `${exercise.restSeconds}s`;
-  const mm = String(Math.floor(restLeft / 60)).padStart(2, '0');
-  const ss = String(restLeft % 60).padStart(2, '0');
+  const restLabel = formatMMSS(exercise.restSeconds);
   const circumference = 2 * Math.PI * 96;
-  const restOffset = restTotal ? circumference * (1 - restLeft / restTotal) : 0;
+  const restOffset = restTimer.restTotal ? circumference * (1 - restTimer.restLeft / restTimer.restTotal) : 0;
 
   return (
     <View style={styles.screen}>
@@ -192,7 +160,7 @@ export default function ExerciseExecutionScreen({ route, navigation }) {
         </Pressable>
       )}
 
-      <Modal visible={resting} transparent animationType="fade">
+      <Modal visible={isResting} transparent animationType="fade">
         <View style={styles.restOverlay}>
           <Text style={styles.restTag}>Descanso</Text>
           <View style={{ width: 220, height: 220, alignItems: 'center', justifyContent: 'center', marginVertical: 20 }}>
@@ -212,23 +180,25 @@ export default function ExerciseExecutionScreen({ route, navigation }) {
                 origin="110, 110"
               />
             </Svg>
-            <Text style={styles.restTime}>{mm}:{ss}</Text>
+            <Text style={styles.restTime}>{formatMMSS(restTimer.restLeft)}</Text>
             <Text style={styles.restLabelSmall}>restantes</Text>
           </View>
           <View style={styles.restAdjustRow}>
-            <Pressable style={styles.restAdjustBtn} onPress={() => adjustRest(-15)}>
+            <Pressable style={styles.restAdjustBtn} onPress={() => restTimer.adjust(-15)}>
               <Text style={styles.restAdjustText}>−15s</Text>
             </Pressable>
-            <Pressable style={styles.restAdjustBtn} onPress={skipRest}>
+            <Pressable style={styles.restAdjustBtn} onPress={restTimer.skip}>
               <Text style={styles.restAdjustText}>Saltar</Text>
             </Pressable>
-            <Pressable style={styles.restAdjustBtn} onPress={() => adjustRest(15)}>
+            <Pressable style={styles.restAdjustBtn} onPress={() => restTimer.adjust(15)}>
               <Text style={styles.restAdjustText}>+15s</Text>
             </Pressable>
           </View>
-          <Text style={styles.restNext}>
-            Siguiente: <Text style={styles.bold}>Serie {Math.min(doneSets + 1, exercise.targetSets)}</Text>
-          </Text>
+          <Pressable onPress={() => navigation.goBack()}>
+            <Text style={styles.restNext}>
+              Siguiente: <Text style={styles.bold}>Serie {Math.min(doneSets + 1, exercise.targetSets)}</Text> · Ver rutina ↓
+            </Text>
+          </Pressable>
         </View>
       </Modal>
     </View>

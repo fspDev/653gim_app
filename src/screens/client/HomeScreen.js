@@ -8,6 +8,7 @@ import { getPlanDays } from '../../services/plans';
 import { getSession, saveSession, todayId, computePercent } from '../../services/sessions';
 import { PrimaryButton, SecondaryButton } from '../../components/UI';
 import { confirmAction } from '../../utils/platformAlert';
+import { formatMMSS } from '../../utils/time';
 
 const WEEK_LABELS = { mon: 'LUN', tue: 'MAR', wed: 'MIÉ', thu: 'JUE', fri: 'VIE', sat: 'SÁB', sun: 'DOM' };
 const WEEK_ORDER = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
@@ -234,8 +235,7 @@ function ExerciseGroup({ title, exercises, onPress }) {
             <View style={{ flex: 1 }}>
               <Text style={styles.exName}>{ex.name}</Text>
               <Text style={styles.exMeta}>
-                {ex.targetSets} series × {ex.reps} reps · descanso{' '}
-                {ex.restSeconds >= 60 ? `${Math.round(ex.restSeconds / 60)}min` : `${ex.restSeconds}s`}
+                {ex.targetSets} series × {ex.reps} reps · descanso {formatMMSS(ex.restSeconds)}
                 {ex.sets.length > 0 ? ` · ${ex.sets.length}/${ex.targetSets} hechas` : ''}
               </Text>
             </View>

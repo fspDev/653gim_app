@@ -53,7 +53,12 @@ export async function scheduleRestEndNotification(seconds) {
   }
 
   const id = await Notifications.scheduleNotificationAsync({
-    content: { title: '¡Descanso terminado! 💪', body: 'Arrancá la próxima serie.', sound: true },
+    content: {
+      title: '¡Descanso terminado! 💪',
+      body: 'Arrancá la próxima serie.',
+      sound: true,
+      vibrate: [0, 300, 100, 300],
+    },
     trigger: { seconds: Math.max(1, Math.round(seconds)) },
   });
   return { web: false, id };

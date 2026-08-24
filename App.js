@@ -2,14 +2,17 @@ import React from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from './src/context/AuthContext';
+import { RestTimerProvider } from './src/context/RestTimerContext';
 import RootNavigator from './src/navigation/RootNavigator';
 
 export default function App() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <RootNavigator />
-        <StatusBar style="light" />
+        <RestTimerProvider>
+          <RootNavigator />
+          <StatusBar style="light" />
+        </RestTimerProvider>
       </AuthProvider>
     </SafeAreaProvider>
   );
