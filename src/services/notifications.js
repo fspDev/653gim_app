@@ -4,7 +4,10 @@ const isWeb = Platform.OS === 'web';
 
 const REST_TITLE = '¡Descanso terminado! 💪';
 const REST_BODY = 'Arrancá la próxima serie.';
-const VIBRATE_PATTERN = [300, 100, 300];
+// Patrón largo e insistente: en el gimnasio el celular suele estar en el piso
+// o en un bolsillo, así que conviene que se sienta bien.
+// Formato: [vibra, pausa, vibra, pausa, ...] en milisegundos (~4,5 s en total).
+const VIBRATE_PATTERN = [800, 250, 800, 250, 800, 250, 1200];
 
 // En native (Expo Go / build) usamos expo-notifications: notificaciones
 // locales reales del sistema operativo, funcionan con la app en background.
