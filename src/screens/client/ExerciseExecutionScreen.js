@@ -88,8 +88,10 @@ export default function ExerciseExecutionScreen({ route, navigation }) {
   }
 
   const restLabel = formatMMSS(exercise.restSeconds);
-  const circumference = 2 * Math.PI * 96;
-  const restOffset = restTimer.restTotal ? circumference * (1 - restTimer.restLeft / restTimer.restTotal) : 0;
+  const bigCircumference = 2 * Math.PI * 124;
+  const restOffset = restTimer.restTotal
+    ? bigCircumference * (1 - restTimer.restLeft / restTimer.restTotal)
+    : 0;
 
   return (
     <View style={styles.screen}>
@@ -163,21 +165,22 @@ export default function ExerciseExecutionScreen({ route, navigation }) {
       <Modal visible={isResting} transparent animationType="fade">
         <View style={styles.restOverlay}>
           <Text style={styles.restTag}>Descanso</Text>
-          <View style={{ width: 220, height: 220, alignItems: 'center', justifyContent: 'center', marginVertical: 20 }}>
-            <Svg width={220} height={220} style={{ position: 'absolute' }}>
-              <Circle cx={110} cy={110} r={96} stroke={colors.black3} strokeWidth={10} fill="none" />
+          <Text style={styles.restExercise}>{exercise.name}</Text>
+          <View style={{ width: 280, height: 280, alignItems: 'center', justifyContent: 'center', marginVertical: 24 }}>
+            <Svg width={280} height={280} style={{ position: 'absolute' }}>
+              <Circle cx={140} cy={140} r={124} stroke={colors.black3} strokeWidth={14} fill="none" />
               <Circle
-                cx={110}
-                cy={110}
-                r={96}
+                cx={140}
+                cy={140}
+                r={124}
                 stroke={colors.red}
-                strokeWidth={10}
+                strokeWidth={14}
                 fill="none"
                 strokeLinecap="round"
-                strokeDasharray={`${circumference} ${circumference}`}
+                strokeDasharray={`${bigCircumference} ${bigCircumference}`}
                 strokeDashoffset={restOffset}
                 rotation="-90"
-                origin="110, 110"
+                origin="140, 140"
               />
             </Svg>
             <Text style={styles.restTime}>{formatMMSS(restTimer.restLeft)}</Text>
@@ -194,10 +197,11 @@ export default function ExerciseExecutionScreen({ route, navigation }) {
               <Text style={styles.restAdjustText}>+15s</Text>
             </Pressable>
           </View>
-          <Pressable onPress={() => navigation.goBack()}>
-            <Text style={styles.restNext}>
-              Siguiente: <Text style={styles.bold}>Serie {Math.min(doneSets + 1, exercise.targetSets)}</Text> · Ver rutina ↓
-            </Text>
+          <Text style={styles.restNext}>
+            Siguiente: <Text style={styles.restNextBold}>Serie {Math.min(doneSets + 1, exercise.targetSets)}</Text>
+          </Text>
+          <Pressable style={styles.restBackBtn} onPress={() => navigation.goBack()}>
+            <Text style={styles.restBackText}>Ver mi rutina</Text>
           </Pressable>
         </View>
       </Modal>
@@ -232,12 +236,16 @@ const styles = StyleSheet.create({
   restEditValue: { color: colors.white, fontSize: 15, fontWeight: '800', minWidth: 50, textAlign: 'center' },
   primaryBtn: { backgroundColor: colors.red, paddingVertical: 16, borderRadius: radius.md, alignItems: 'center', marginBottom: 10 },
   primaryBtnText: { color: '#fff', fontSize: 15, fontWeight: '800' },
-  restOverlay: { flex: 1, backgroundColor: colors.black, alignItems: 'center', justifyContent: 'center' },
-  restTag: { color: colors.red, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 6 },
-  restTime: { color: colors.white, fontSize: 44, fontWeight: '900', letterSpacing: -1 },
-  restLabelSmall: { color: colors.gray1, fontSize: 11, fontWeight: '700' },
-  restAdjustRow: { flexDirection: 'row', gap: 10, marginBottom: 26 },
-  restAdjustBtn: { paddingHorizontal: 16, paddingVertical: 9, borderRadius: 20, backgroundColor: colors.black3, borderWidth: 1, borderColor: colors.border },
-  restAdjustText: { color: '#fff', fontSize: 12, fontWeight: '700' },
-  restNext: { color: colors.gray1, fontSize: 12 },
+  restOverlay: { flex: 1, backgroundColor: colors.black, alignItems: 'center', justifyContent: 'center', padding: 20 },
+  restTag: { color: colors.red, fontSize: 15, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 8 },
+  restExercise: { color: colors.white, fontSize: 22, fontWeight: '800', textAlign: 'center', letterSpacing: -0.3 },
+  restTime: { color: colors.white, fontSize: 68, fontWeight: '900', letterSpacing: -2 },
+  restLabelSmall: { color: colors.gray1, fontSize: 15, fontWeight: '700', marginTop: 2 },
+  restAdjustRow: { flexDirection: 'row', gap: 12, marginBottom: 28 },
+  restAdjustBtn: { paddingHorizontal: 22, paddingVertical: 14, borderRadius: 24, backgroundColor: colors.black3, borderWidth: 1, borderColor: colors.border },
+  restAdjustText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  restNext: { color: colors.gray1, fontSize: 16 },
+  restNextBold: { color: colors.white, fontSize: 16, fontWeight: '800' },
+  restBackBtn: { marginTop: 22, paddingHorizontal: 26, paddingVertical: 13, borderRadius: 24, borderWidth: 1, borderColor: colors.gray2 },
+  restBackText: { color: colors.white, fontSize: 15, fontWeight: '700' },
 });

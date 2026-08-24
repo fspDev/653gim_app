@@ -3,7 +3,15 @@ import { View, Text, ScrollView, Pressable, Switch, StyleSheet } from 'react-nat
 import { colors, radius } from '../../theme/colors';
 import { useAuth } from '../../context/AuthContext';
 import { updateUserProfile } from '../../services/users';
-import { scheduleGymDayReminders, scheduleFeeReminder } from '../../services/notifications';
+import {
+  scheduleGymDayReminders,
+  scheduleFeeReminder,
+  ensureNotificationPermission,
+  notificationPermissionStatus,
+  supportsVibration,
+  vibrateNow,
+  testNotification,
+} from '../../services/notifications';
 import { SecondaryButton } from '../../components/UI';
 
 const WEEK_DAYS = [
@@ -21,6 +29,29 @@ export default function SettingsScreen() {
   const [notifPrefs, setNotifPrefs] = useState(
     profile?.notifPrefs || { restEnd: true, gymReminder: true, feeReminder: false }
   );
+  const [permStatus, setPermStatus] = useState(notificationPermissionStatus());
+  const [diagMsg, setDiagMsg] = useState('');
+
+  async function askPermission() {
+    const ok = await ensureNotificationPermission();
+    setPermStatus(notificationPermissionStatus());
+    setDiagMsg(ok ? '✓ Notificaciones activadas.' : 'No se pudo activar. Revisá los permisos del sitio en tu navegador.');
+  }
+
+  function handleTestVibration() {
+    if (!supportsVibration()) {
+      setDiagMsg('Tu dispositivo/navegador no soporta vibración (los iPhone no la soportan en la web).');
+      return;
+    }
+    const ok = vibrateNow();
+    setDiagMsg(ok ? 'Se envió la vibración. ¿La sentiste?' : 'El navegador rechazó la vibración.');
+  }
+
+  async function handleTestNotification() {
+    const ok = await testNotification();
+    setPermStatus(notificationPermissionStatus());
+    setDiagMsg(ok ? 'Notificación enviada. ¿Llegó y vibró?' : 'No se pudo enviar: falta el permiso de notificaciones.');
+  }
 
   async function toggleDay(key) {
     const next = weeklyDays.includes(key) ? weeklyDays.filter((d) => d !== key) : [...weeklyDays, key];
@@ -80,6 +111,29 @@ export default function SettingsScreen() {
         onToggle={() => toggleNotif('feeReminder')}
       />
 
+      <Text style={styles.sectionLabel}>Probar avisos</Text>
+      <View style={styles.diagBox}>
+        <Text style={styles.diagStatus}>
+          Permiso de notificaciones:{' '}
+          <Text style={{ color: permStatus === 'granted' ? colors.green : '#ff6b76', fontWeight: '800' }}>
+            {permStatus === 'granted' ? 'activado' : permStatus === 'denied' ? 'bloqueado' : 'sin activar'}
+          </Text>
+        </Text>
+        <Text style={styles.diagStatus}>
+          Vibración del dispositivo:{' '}
+          <Text style={{ color: supportsVibration() ? colors.green : '#ff6b76', fontWeight: '800' }}>
+            {supportsVibration() ? 'compatible' : 'no compatible'}
+          </Text>
+        </Text>
+
+        {permStatus !== 'granted' && (
+          <SecondaryButton title="Activar notificaciones" onPress={askPermission} style={{ marginTop: 12 }} />
+        )}
+        <SecondaryButton title="Probar vibración" onPress={handleTestVibration} style={{ marginTop: 8 }} />
+        <SecondaryButton title="Probar notificación" onPress={handleTestNotification} style={{ marginTop: 8 }} />
+        {!!diagMsg && <Text style={styles.diagMsg}>{diagMsg}</Text>}
+      </View>
+
       <Text style={styles.sectionLabel}>Mi perfil</Text>
       <View style={styles.profileRow}>
         <View style={styles.avatar}>
@@ -131,6 +185,12 @@ const styles = StyleSheet.create({
   },
   notifTitle: { color: colors.white, fontSize: 13, fontWeight: '700' },
   notifSub: { color: colors.gray1, fontSize: 11, marginTop: 2 },
+  diagBox: {
+    backgroundColor: colors.black2, borderWidth: 1, borderColor: colors.border,
+    borderRadius: 12, padding: 14,
+  },
+  diagStatus: { color: colors.gray1, fontSize: 12.5, marginBottom: 4 },
+  diagMsg: { color: colors.white, fontSize: 12.5, fontWeight: '600', marginTop: 12, lineHeight: 18 },
   profileRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.black3, alignItems: 'center', justifyContent: 'center' },
   profileName: { color: colors.white, fontSize: 13.5, fontWeight: '700' },

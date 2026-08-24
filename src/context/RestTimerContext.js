@@ -1,17 +1,12 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { Platform, Vibration } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { scheduleRestEndNotification, cancelNotification } from '../services/notifications';
+import {
+  scheduleRestEndNotification,
+  cancelNotification,
+  notifyRestFinished,
+} from '../services/notifications';
 
 const STORAGE_KEY = 'activeRestTimer';
-
-function vibrateDevice() {
-  if (Platform.OS === 'web') {
-    if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate([300, 100, 300]);
-  } else {
-    Vibration.vibrate([0, 300, 100, 300]);
-  }
-}
 
 const RestTimerContext = createContext(null);
 
@@ -49,7 +44,19 @@ export function RestTimerProvider({ children }) {
       clearInterval(intervalRef.current);
       setRestLeft(0);
       setInfo(null);
-      vibrateDevice();
+
+      // Si la notificación programada todavía no se disparó (lo normal cuando
+      // la app estuvo visible), la cancelamos y notificamos ahora para no
+      // duplicar el aviso.
+      const handle = notifIdRef.current;
+      if (handle && !handle.fired) {
+        cancelNotification(handle);
+        notifyRestFinished();
+      } else if (!handle) {
+        notifyRestFinished();
+      }
+      notifIdRef.current = null;
+
       AsyncStorage.removeItem(STORAGE_KEY).catch(() => {});
       return;
     }

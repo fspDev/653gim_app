@@ -1,6 +1,10 @@
-import { Platform } from 'react-native';
+import { Platform, Vibration } from 'react-native';
 
 const isWeb = Platform.OS === 'web';
+
+const REST_TITLE = '¡Descanso terminado! 💪';
+const REST_BODY = 'Arrancá la próxima serie.';
+const VIBRATE_PATTERN = [300, 100, 300];
 
 // En native (Expo Go / build) usamos expo-notifications: notificaciones
 // locales reales del sistema operativo, funcionan con la app en background.
@@ -19,6 +23,35 @@ if (!isWeb) {
   });
 }
 
+export function supportsVibration() {
+  if (!isWeb) return true;
+  return typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function';
+}
+
+export function notificationPermissionStatus() {
+  if (!isWeb) return 'unknown';
+  if (typeof Notification === 'undefined') return 'unsupported';
+  return Notification.permission; // 'default' | 'granted' | 'denied'
+}
+
+// Vibración directa. En web el navegador solo la permite si hubo un toque
+// del usuario hace poco; por eso, para el fin del descanso, además se usa
+// la notificación del Service Worker (ver notifyRestFinished).
+export function vibrateNow() {
+  try {
+    if (isWeb) {
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        return navigator.vibrate(VIBRATE_PATTERN);
+      }
+      return false;
+    }
+    Vibration.vibrate([0, ...VIBRATE_PATTERN]);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
 export async function ensureNotificationPermission() {
   if (isWeb) {
     if (typeof Notification === 'undefined') return false;
@@ -34,11 +67,14 @@ export async function ensureNotificationPermission() {
 }
 
 async function showWebNotification(title, body) {
-  if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+  if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return false;
   const options = {
     body,
     icon: '/653gim_app/logo653.png',
-    vibrate: [300, 100, 300], // solo lo respeta showNotification() de un Service Worker
+    badge: '/653gim_app/logo653.png',
+    tag: 'rest-end',
+    renotify: true,
+    vibrate: VIBRATE_PATTERN, // solo lo respeta showNotification() del Service Worker
   };
   try {
     // Pasar por el Service Worker es lo que permite que el navegador dispare
@@ -48,35 +84,74 @@ async function showWebNotification(title, body) {
       const reg = await navigator.serviceWorker.ready;
       if (reg?.showNotification) {
         await reg.showNotification(title, options);
-        return;
+        return true;
       }
     }
     new Notification(title, options);
-  } catch (e) {}
+    return true;
+  } catch (e) {
+    return false;
+  }
 }
 
+// Dispara la notificación + vibración YA (cuando el cronómetro llega a cero).
+export async function notifyRestFinished() {
+  vibrateNow(); // funciona si el navegador todavía considera "activo" al usuario
+  if (isWeb) {
+    return showWebNotification(REST_TITLE, REST_BODY);
+  }
+  try {
+    await Notifications.scheduleNotificationAsync({
+      content: { title: REST_TITLE, body: REST_BODY, sound: true, vibrate: [0, ...VIBRATE_PATTERN] },
+      trigger: null, // inmediata
+    });
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+export async function testNotification() {
+  const ok = await ensureNotificationPermission();
+  if (!ok) return false;
+  if (isWeb) return showWebNotification('Notificación de prueba 🔔', 'Si vibró, está todo listo.');
+  try {
+    await Notifications.scheduleNotificationAsync({
+      content: { title: 'Notificación de prueba 🔔', body: 'Si vibró, está todo listo.', sound: true, vibrate: [0, ...VIBRATE_PATTERN] },
+      trigger: null,
+    });
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+// Programa la notificación por adelantado. En web los timers se congelan si el
+// sistema suspende la app, así que esto es "el mejor esfuerzo": el disparo
+// garantizado ocurre en notifyRestFinished() cuando el cronómetro llega a cero.
 export async function scheduleRestEndNotification(seconds) {
   const ok = await ensureNotificationPermission();
   if (!ok) return null;
-  const delayMs = Math.max(1, Math.round(seconds)) * 1000;
 
   if (isWeb) {
-    const timeoutId = setTimeout(() => {
-      showWebNotification('¡Descanso terminado! 💪', 'Arrancá la próxima serie.');
-    }, delayMs);
-    return { web: true, timeoutId };
+    const handle = { web: true, fired: false, timeoutId: null };
+    handle.timeoutId = setTimeout(() => {
+      handle.fired = true;
+      showWebNotification(REST_TITLE, REST_BODY);
+    }, Math.max(1, Math.round(seconds)) * 1000);
+    return handle;
   }
 
   const id = await Notifications.scheduleNotificationAsync({
     content: {
-      title: '¡Descanso terminado! 💪',
-      body: 'Arrancá la próxima serie.',
+      title: REST_TITLE,
+      body: REST_BODY,
       sound: true,
-      vibrate: [0, 300, 100, 300],
+      vibrate: [0, ...VIBRATE_PATTERN],
     },
     trigger: { seconds: Math.max(1, Math.round(seconds)) },
   });
-  return { web: false, id };
+  return { web: false, fired: false, id };
 }
 
 export async function cancelNotification(handle) {
