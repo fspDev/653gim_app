@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es" translate="no">
+  <head>
+    <meta charset="utf-8" />
+    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <title>653 Gym & Fitness</title>
+    <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
+    <style id="expo-reset">
+      /* These styles make the body full-height */
+      html,
+      body {
+        height: 100%;
+      }
+      /* These styles disable body scrolling if you are using <ScrollView> */
+      body {
+        overflow: hidden;
+      }
+      /* These styles make the root element full-height */
+      #root {
+        display: flex;
+        height: 100%;
+        flex: 1;
+      }
+    </style>
+  <link rel="icon" href="/653gim_app/favicon.ico"/>
+  <link rel="manifest" href="/653gim_app/manifest.webmanifest" />
+  <meta name="theme-color" content="#0a0a0a" />
+  <link rel="apple-touch-icon" href="/653gim_app/logo653.png" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="653 Gym" />
+  <meta name="google" content="notranslate" />
+</head>
+
+  <body>
+    <!-- Use static rendering with Expo Router to support running without JavaScript. -->
+    <noscript>
+      You need to enable JavaScript to run this app.
+    </noscript>
+    <!-- The root element for your Expo app. -->
+    <div id="root"></div>
+  <script src="/653gim_app/_expo/static/js/web/index-d9dac664bb7763604f2125b26493b9e4.js" defer></script>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('/653gim_app/sw.js').then(function (reg) {
+          // Si aparece una versión nueva, se recarga sola una vez. Sin esto la
+          // app puede quedar pegada a un build viejo durante horas.
+          var reloading = false;
+          navigator.serviceWorker.addEventListener('controllerchange', function () {
+            if (reloading) return;
+            reloading = true;
+            window.location.reload();
+          });
+          reg.update();
+          // Y revisa si hay novedades cada vez que se vuelve a la app.
+          document.addEventListener('visibilitychange', function () {
+            if (!document.hidden) reg.update();
+          });
+        }).catch(function () {});
+      });
+    }
+  </script>
+</body>
+</html>
