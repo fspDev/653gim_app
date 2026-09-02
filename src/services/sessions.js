@@ -10,12 +10,30 @@ import {
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 
+// IMPORTANTE: usar la fecha LOCAL, no UTC. Con toISOString() el día "saltaba"
+// al siguiente a partir de las 21:00 en Argentina (UTC-3), lo que hacía que la
+// sesión en curso pareciera reiniciarse sola a mitad del entrenamiento.
 function todayKey(date = new Date()) {
-  return date.toISOString().slice(0, 10); // YYYY-MM-DD
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }
 
 export function todayId() {
   return todayKey();
+}
+
+// Devuelve { ok, session }. Distinguir "no existe" de "falló la lectura" es
+// clave: si falla la red y devolviéramos null, la Home crearía una sesión
+// nueva en blanco y pisaría el progreso del día.
+export async function getSessionSafe(uid, dateKey) {
+  try {
+    const snap = await getDoc(doc(db, 'gymSessions', uid, 'logs', dateKey));
+    return { ok: true, session: snap.exists() ? snap.data() : null };
+  } catch (e) {
+    return { ok: false, session: null };
+  }
 }
 
 export async function getSession(uid, dateKey) {

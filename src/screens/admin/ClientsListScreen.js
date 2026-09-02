@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { View, Text, ScrollView, Pressable, Image, TextInput, StyleSheet, ActivityIndicator } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { useResponsive } from '../../utils/useResponsive';
 import { colors, radius } from '../../theme/colors';
 import { useAuth } from '../../context/AuthContext';
 import { getClients } from '../../services/users';
@@ -8,6 +9,7 @@ import { Badge, PrimaryButton } from '../../components/UI';
 
 export default function ClientsListScreen({ navigation }) {
   const { logout } = useAuth();
+  const layout = useResponsive();
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -28,7 +30,7 @@ export default function ClientsListScreen({ navigation }) {
   const overdueCount = clients.filter((c) => c.feeStatus === 'overdue').length;
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={{ padding: 20, paddingBottom: 110 }}>
+    <ScrollView style={styles.screen} contentContainerStyle={[{ paddingVertical: 20, paddingBottom: 110 }, layout.contentStyle]}>
       <View style={styles.topbar}>
         <View style={styles.brandRow}>
           <View style={styles.brandMark}>

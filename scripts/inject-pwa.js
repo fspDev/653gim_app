@@ -28,7 +28,21 @@ const swScript = `
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
-        navigator.serviceWorker.register('${BASE}/sw.js').catch(function () {});
+        navigator.serviceWorker.register('${BASE}/sw.js').then(function (reg) {
+          // Si aparece una versión nueva, se recarga sola una vez. Sin esto la
+          // app puede quedar pegada a un build viejo durante horas.
+          var reloading = false;
+          navigator.serviceWorker.addEventListener('controllerchange', function () {
+            if (reloading) return;
+            reloading = true;
+            window.location.reload();
+          });
+          reg.update();
+          // Y revisa si hay novedades cada vez que se vuelve a la app.
+          document.addEventListener('visibilitychange', function () {
+            if (!document.hidden) reg.update();
+          });
+        }).catch(function () {});
       });
     }
   </script>

@@ -3,8 +3,10 @@ import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { colors } from '../../theme/colors';
 import { FormField, PrimaryButton, SecondaryButton } from '../../components/UI';
 import { createClientAccount } from '../../services/clientAccounts';
+import { useResponsive } from '../../utils/useResponsive';
 
 export default function NewClientScreen({ navigation }) {
+  const layout = useResponsive();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
@@ -42,7 +44,7 @@ export default function NewClientScreen({ navigation }) {
 
   if (created) {
     return (
-      <View style={[styles.screen, { padding: 20, justifyContent: 'center' }]}>
+      <View style={[styles.screen, { padding: 20, justifyContent: 'center' }, layout.contentStyle]}>
         <View style={styles.successBox}>
           <Text style={styles.successTitle}>✓ Cliente creado</Text>
           <Text style={styles.previewLabel}>Datos de acceso</Text>
@@ -64,7 +66,7 @@ export default function NewClientScreen({ navigation }) {
   const previewUser = firstName.trim() && lastName.trim() ? `${firstName.trim()} ${lastName.trim()}` : '';
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={{ padding: 20, paddingBottom: 60 }}>
+    <ScrollView style={styles.screen} contentContainerStyle={[{ paddingVertical: 20, paddingBottom: 60 }, layout.contentStyle]}>
       <Text style={styles.header}>Nuevo cliente</Text>
       <Text style={styles.sub}>
         El cliente va a iniciar sesión con su nombre y apellido como usuario, y su DNI como contraseña.

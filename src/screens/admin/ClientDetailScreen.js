@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { View, Text, ScrollView, Pressable, TextInput, Switch, StyleSheet, ActivityIndicator } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { useResponsive } from '../../utils/useResponsive';
 import { colors, radius } from '../../theme/colors';
 import { getUserProfile } from '../../services/users';
 import { getPlanDays, savePlanDay, deletePlanDay, newExercise } from '../../services/plans';
@@ -17,6 +18,7 @@ import { notify, confirmAction } from '../../utils/platformAlert';
 
 export default function ClientDetailScreen({ route, navigation }) {
   const { clientId } = route.params;
+  const layout = useResponsive();
   const [client, setClient] = useState(null);
   const [days, setDays] = useState([]);
   const [library, setLibrary] = useState([]);
@@ -228,7 +230,7 @@ export default function ClientDetailScreen({ route, navigation }) {
   const exactMatch = library.some((e) => e.name.toLowerCase() === pickerQuery.trim().toLowerCase());
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={{ padding: 20, paddingBottom: 110 }}>
+    <ScrollView style={styles.screen} contentContainerStyle={[{ paddingVertical: 20, paddingBottom: 110 }, layout.contentStyle]}>
       <View style={styles.headerRow}>
         <View style={styles.av}>
           <Text style={{ color: '#fff', fontWeight: '700' }}>

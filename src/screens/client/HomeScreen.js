@@ -5,7 +5,9 @@ import { colors, radius, typography } from '../../theme/colors';
 import { useAuth } from '../../context/AuthContext';
 import RingProgress from '../../components/RingProgress';
 import { getPlanDays } from '../../services/plans';
-import { getSession, saveSession, todayId, computePercent } from '../../services/sessions';
+import { getSessionSafe, saveSession, todayId, computePercent } from '../../services/sessions';
+import { getUserProfile } from '../../services/users';
+import { getExercisePref } from '../../services/exercisePrefs';
 import { PrimaryButton, SecondaryButton } from '../../components/UI';
 import { confirmAction } from '../../utils/platformAlert';
 import { formatMMSS } from '../../utils/time';
@@ -19,11 +21,27 @@ export default function HomeScreen({ navigation }) {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [prefs, setPrefs] = useState(null);
 
   const load = useCallback(async () => {
     if (!user) return;
     setLoading(true);
-    const planDays = await getPlanDays(user.uid);
+    setLoadError(false);
+
+    let planDays = [];
+    let freshPrefs = null;
+    try {
+      planDays = await getPlanDays(user.uid);
+      const p = await getUserProfile(user.uid);
+      freshPrefs = p?.exercisePrefs || null;
+      setPrefs(freshPrefs);
+    } catch (e) {
+      // Sin conexión y sin caché: no tocamos nada, para no pisar el progreso.
+      setLoadError(true);
+      setLoading(false);
+      return;
+    }
     setDays(planDays);
 
     if (planDays.length === 0) {
@@ -32,13 +50,21 @@ export default function HomeScreen({ navigation }) {
       return;
     }
 
-    const existing = await getSession(user.uid, todayId());
+    const { ok, session: existing } = await getSessionSafe(user.uid, todayId());
+    if (!ok) {
+      // La lectura falló. NUNCA crear una sesión nueva acá: si el día ya tenía
+      // progreso, guardarla en blanco lo borraría (bug de "se reinició solo").
+      setLoadError(true);
+      setLoading(false);
+      return;
+    }
+
     if (existing) {
       setSession(existing);
     } else {
       const first = planDays[0];
       if (first) {
-        const fresh = buildFreshSession(first);
+        const fresh = buildFreshSession(first, freshPrefs);
         setSession(fresh);
         await saveSession(user.uid, todayId(), fresh);
       }
@@ -58,19 +84,26 @@ export default function HomeScreen({ navigation }) {
     setRefreshing(false);
   }
 
-  function buildFreshSession(day) {
+  function buildFreshSession(day, prefsOverride) {
+    const activePrefs = prefsOverride !== undefined ? prefsOverride : prefs;
     const exercises = [
       ...day.groups.core.map((e) => ({ ...e, group: 'core' })),
       ...day.groups.fuerza.map((e) => ({ ...e, group: 'fuerza' })),
-    ].map((e) => ({
-      exerciseId: e.id,
-      name: e.name,
-      group: e.group,
-      targetSets: e.sets,
-      reps: e.reps,
-      restSeconds: e.restSeconds,
-      sets: [],
-    }));
+    ].map((e) => {
+      // Arranca con el último peso / descanso que usó el cliente en ese mismo
+      // ejercicio; si nunca lo hizo, con lo que cargó el profe.
+      const pref = getExercisePref(activePrefs, e.name);
+      return {
+        exerciseId: e.id,
+        name: e.name,
+        group: e.group,
+        targetSets: e.sets,
+        reps: e.reps,
+        restSeconds: pref?.restSeconds ?? e.restSeconds,
+        lastWeight: pref?.weight ?? null,
+        sets: [],
+      };
+    });
     return { dayId: day.id, date: todayId(), startedAt: Date.now(), exercises };
   }
 
@@ -147,7 +180,15 @@ export default function HomeScreen({ navigation }) {
         <Text style={styles.bold}>{profile?.planType === 'weekly' ? 'Semanal' : 'Diario'}</Text>
       </Text>
 
-      {days.length === 0 ? (
+      {loadError ? (
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptyTitle}>No pudimos cargar tu rutina</Text>
+          <Text style={styles.emptySub}>
+            Parece que no hay conexión. Tu progreso está guardado: deslizá para reintentar.
+          </Text>
+          <SecondaryButton title="Reintentar" onPress={load} style={{ marginTop: 14, alignSelf: 'stretch' }} />
+        </View>
+      ) : days.length === 0 ? (
         <View style={styles.emptyCard}>
           <Text style={styles.emptyTitle}>Todavía no tenés un plan cargado</Text>
           <Text style={styles.emptySub}>Hablá con tu profe para que te arme la rutina.</Text>
@@ -163,6 +204,14 @@ export default function HomeScreen({ navigation }) {
               </Text>
             </View>
           </View>
+
+          {nextExercise && (
+            <PrimaryButton
+              title="Continuar rutina →"
+              onPress={() => openExercise(nextExercise)}
+              style={{ marginTop: 12 }}
+            />
+          )}
 
           {doneCount > 0 && (
             <SecondaryButton
@@ -200,13 +249,6 @@ export default function HomeScreen({ navigation }) {
             </>
           )}
 
-          {nextExercise && (
-            <PrimaryButton
-              title="Continuar rutina →"
-              onPress={() => openExercise(nextExercise)}
-              style={{ marginTop: 12 }}
-            />
-          )}
         </>
       )}
     </ScrollView>

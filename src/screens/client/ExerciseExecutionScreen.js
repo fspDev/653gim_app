@@ -5,6 +5,7 @@ import { colors, radius } from '../../theme/colors';
 import { useAuth } from '../../context/AuthContext';
 import { useRestTimer } from '../../context/RestTimerContext';
 import { getSession, saveSession, todayId } from '../../services/sessions';
+import { saveExercisePref } from '../../services/exercisePrefs';
 import { formatMMSS } from '../../utils/time';
 
 export default function ExerciseExecutionScreen({ route, navigation }) {
@@ -22,6 +23,13 @@ export default function ExerciseExecutionScreen({ route, navigation }) {
       setSession(s);
       const ex = s?.exercises.find((e) => e.exerciseId === exerciseId);
       setExercise(ex);
+      if (ex) {
+        // Arranca con el peso de la última serie hecha hoy; si todavía no hizo
+        // ninguna, con el que dejó guardado la última vez que hizo este ejercicio.
+        const lastToday = ex.sets?.length ? ex.sets[ex.sets.length - 1].weight : null;
+        const initial = lastToday ?? ex.lastWeight;
+        if (initial !== null && initial !== undefined) setWeight(initial);
+      }
       setLoading(false);
     })();
   }, [exerciseId]);
@@ -54,7 +62,7 @@ export default function ExerciseExecutionScreen({ route, navigation }) {
 
   async function completeSerie() {
     const updatedSets = [...exercise.sets, { weight, reps: exercise.reps, completedAt: Date.now() }];
-    const updatedExercise = { ...exercise, sets: updatedSets };
+    const updatedExercise = { ...exercise, sets: updatedSets, lastWeight: weight };
     const updatedExercises = session.exercises.map((e) =>
       e.exerciseId === exerciseId ? updatedExercise : e
     );
@@ -63,16 +71,20 @@ export default function ExerciseExecutionScreen({ route, navigation }) {
     setSession(updatedSession);
     await saveSession(user.uid, todayId(), updatedSession);
 
-    if (updatedSets.length < exercise.targetSets) {
-      restTimer.start({
-        exerciseId,
-        exerciseName: exercise.name,
-        dayId: session.dayId,
-        seconds: exercise.restSeconds,
-      });
-    } else {
-      setTimeout(() => navigation.goBack(), 500);
-    }
+    // Queda como valor por defecto para la próxima vez que toque este ejercicio.
+    saveExercisePref(user.uid, exercise.name, { weight, restSeconds: exercise.restSeconds });
+
+    const wasLast = updatedSets.length >= exercise.targetSets;
+
+    // El descanso también corre después de la última serie: se sigue
+    // descansando antes de pasar al ejercicio siguiente.
+    restTimer.start({
+      exerciseId,
+      exerciseName: exercise.name,
+      dayId: session.dayId,
+      seconds: exercise.restSeconds,
+      isLastSet: wasLast,
+    });
   }
 
   async function adjustRestDuration(delta) {
@@ -85,6 +97,7 @@ export default function ExerciseExecutionScreen({ route, navigation }) {
     setExercise(updatedExercise);
     setSession(updatedSession);
     await saveSession(user.uid, todayId(), updatedSession);
+    saveExercisePref(user.uid, exercise.name, { restSeconds: nextValue });
   }
 
   const restLabel = formatMMSS(exercise.restSeconds);
@@ -198,7 +211,13 @@ export default function ExerciseExecutionScreen({ route, navigation }) {
             </Pressable>
           </View>
           <Text style={styles.restNext}>
-            Siguiente: <Text style={styles.restNextBold}>Serie {Math.min(doneSets + 1, exercise.targetSets)}</Text>
+            {restTimer.isLastSet ? (
+              <Text style={styles.restNextBold}>Ejercicio completado ✓</Text>
+            ) : (
+              <>
+                Siguiente: <Text style={styles.restNextBold}>Serie {Math.min(doneSets + 1, exercise.targetSets)}</Text>
+              </>
+            )}
           </Text>
           <Pressable style={styles.restBackBtn} onPress={() => navigation.goBack()}>
             <Text style={styles.restBackText}>Ver mi rutina</Text>
