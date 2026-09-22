@@ -3,7 +3,7 @@
 export function isPiPSupported() {
   return false;
 }
-export function drawTimerFrame() {}
+export function drawExerciseFrame() {}
 export async function requestTimerPiP() {
   return false;
 }

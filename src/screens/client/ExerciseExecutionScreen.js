@@ -60,6 +60,20 @@ export default function ExerciseExecutionScreen({ route, navigation }) {
   const finished = doneSets >= exercise.targetSets;
   const isResting = restTimer.resting && restTimer.exerciseId === exerciseId;
 
+  // Mantiene la ventana flotante al día durante TODO el ejercicio (no solo
+  // el descanso): nombre, serie actual y peso. Si hay un descanso activo,
+  // updatePiPFrame no hace nada (ese dibujo lo maneja el cronómetro).
+  useEffect(() => {
+    restTimer.updatePiPFrame({
+      exerciseName: exercise.name,
+      serieText: finished ? '¡Listo!' : `Serie ${currentSerie} de ${exercise.targetSets}`,
+      weightText: finished ? '' : `${weight} kg`,
+    });
+    // restTimer.resting entra a propósito: cuando el descanso termina, hay
+    // que redibujar la ventana flotante con el estado activo (si no, se queda
+    // trabada mostrando el último cuadro del descanso).
+  }, [exercise.name, currentSerie, exercise.targetSets, finished, weight, restTimer.resting]);
+
   async function completeSerie() {
     const updatedSets = [...exercise.sets, { weight, reps: exercise.reps, completedAt: Date.now() }];
     const updatedExercise = { ...exercise, sets: updatedSets, lastWeight: weight };
@@ -75,6 +89,7 @@ export default function ExerciseExecutionScreen({ route, navigation }) {
     saveExercisePref(user.uid, exercise.name, { weight, restSeconds: exercise.restSeconds });
 
     const wasLast = updatedSets.length >= exercise.targetSets;
+    const nextSerieText = wasLast ? 'Ejercicio completado' : `Serie ${updatedSets.length + 1} de ${exercise.targetSets}`;
 
     // El descanso también corre después de la última serie: se sigue
     // descansando antes de pasar al ejercicio siguiente.
@@ -84,6 +99,7 @@ export default function ExerciseExecutionScreen({ route, navigation }) {
       dayId: session.dayId,
       seconds: exercise.restSeconds,
       isLastSet: wasLast,
+      serieText: nextSerieText,
     });
   }
 
@@ -169,6 +185,17 @@ export default function ExerciseExecutionScreen({ route, navigation }) {
 
       <View style={{ flex: 1 }} />
 
+      {restTimer.pipSupported && (
+        <Pressable
+          style={[styles.pipBtnInline, restTimer.pipActive && styles.pipBtnActive]}
+          onPress={() => (restTimer.pipActive ? restTimer.exitPiP() : restTimer.enterPiP())}
+        >
+          <Text style={styles.pipBtnText}>
+            {restTimer.pipActive ? '🗗 Flotando — tocá para volver' : '🗗 Modo flotante'}
+          </Text>
+        </Pressable>
+      )}
+
       {!finished && (
         <Pressable style={styles.primaryBtn} onPress={completeSerie}>
           <Text style={styles.primaryBtnText}>Marcar serie completada ✓</Text>
@@ -220,17 +247,6 @@ export default function ExerciseExecutionScreen({ route, navigation }) {
             )}
           </Text>
 
-          {restTimer.pipSupported && (
-            <Pressable
-              style={[styles.pipBtn, restTimer.pipActive && styles.pipBtnActive]}
-              onPress={() => (restTimer.pipActive ? restTimer.exitPiP() : restTimer.enterPiP())}
-            >
-              <Text style={styles.pipBtnText}>
-                {restTimer.pipActive ? '🗗 Flotando — tocá para volver' : '🗗 Modo flotante'}
-              </Text>
-            </Pressable>
-          )}
-
           <Pressable style={styles.restBackBtn} onPress={() => navigation.goBack()}>
             <Text style={styles.restBackText}>Ver mi rutina</Text>
           </Pressable>
@@ -278,8 +294,8 @@ const styles = StyleSheet.create({
   restNext: { color: colors.gray1, fontSize: 16 },
   restNextBold: { color: colors.white, fontSize: 16, fontWeight: '800' },
   restBackBtn: { marginTop: 22, paddingHorizontal: 26, paddingVertical: 13, borderRadius: 24, borderWidth: 1, borderColor: colors.gray2 },
-  pipBtn: {
-    marginTop: 18, paddingHorizontal: 20, paddingVertical: 11, borderRadius: 20,
+  pipBtnInline: {
+    marginBottom: 12, paddingVertical: 12, borderRadius: 18, alignItems: 'center',
     backgroundColor: colors.black3, borderWidth: 1, borderColor: colors.border,
   },
   pipBtnActive: { backgroundColor: colors.redDim, borderColor: colors.red },

@@ -9,10 +9,9 @@ import {
 import { acquireWakeLock, releaseWakeLock } from '../utils/wakeLock';
 import {
   isPiPSupported,
-  drawTimerFrame,
+  drawExerciseFrame,
   requestTimerPiP,
   exitTimerPiP,
-  stopPiPStream,
   onPiPLeave,
 } from '../utils/pipTimer';
 import { formatMMSS } from '../utils/time';
@@ -48,8 +47,10 @@ export function RestTimerProvider({ children }) {
     setRestLeft(0);
     setInfo(null);
     infoRef.current = null;
-    stopPiPStream();
-    setPipActive(false);
+    // OJO: acá NO se cierra el PiP. Ahora la ventana flotante también sirve
+    // para ver la serie/peso mientras no hay descanso, así que si estaba
+    // abierta, se queda abierta — la pantalla del ejercicio se encarga de
+    // redibujarla con el estado activo apenas termina el descanso.
 
     const handle = notifIdRef.current;
     if (handle && !handle.fired) {
@@ -76,11 +77,12 @@ export function RestTimerProvider({ children }) {
       return;
     }
     setRestLeft(left);
-    drawTimerFrame({
-      title: infoRef.current?.exerciseName || '',
+    drawExerciseFrame({
+      exerciseName: infoRef.current?.exerciseName || '',
+      resting: true,
       timeText: formatMMSS(left),
-      subText: 'restantes',
       percent: totalRef.current ? left / totalRef.current : 0,
+      serieText: infoRef.current?.serieText || '',
     });
   }
   tickRef.current = tick;
@@ -108,6 +110,7 @@ export function RestTimerProvider({ children }) {
             dayId: parsed.dayId,
             total: parsed.total,
             isLastSet: !!parsed.isLastSet,
+            serieText: parsed.serieText || '',
           };
           setInfo(resumedInfo);
           infoRef.current = resumedInfo;
@@ -148,18 +151,24 @@ export function RestTimerProvider({ children }) {
     return () => sub.remove();
   }, []);
 
-  function start({ exerciseId, exerciseName, dayId, seconds, isLastSet }) {
+  function start({ exerciseId, exerciseName, dayId, seconds, isLastSet, serieText }) {
     const endAt = Date.now() + seconds * 1000;
     endAtRef.current = endAt;
     totalRef.current = seconds;
-    const newInfo = { exerciseId, exerciseName, dayId, total: seconds, isLastSet: !!isLastSet };
+    const newInfo = { exerciseId, exerciseName, dayId, total: seconds, isLastSet: !!isLastSet, serieText: serieText || '' };
     setInfo(newInfo);
     infoRef.current = newInfo;
     setRestLeft(seconds);
-    drawTimerFrame({ title: exerciseName, timeText: formatMMSS(seconds), subText: 'restantes', percent: 1 });
+    drawExerciseFrame({
+      exerciseName,
+      resting: true,
+      timeText: formatMMSS(seconds),
+      percent: 1,
+      serieText: serieText || '',
+    });
     AsyncStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({ exerciseId, exerciseName, dayId, endAt, total: seconds, isLastSet: !!isLastSet })
+      JSON.stringify({ exerciseId, exerciseName, dayId, endAt, total: seconds, isLastSet: !!isLastSet, serieText: serieText || '' })
     ).catch(() => {});
     scheduleRestEndNotification(seconds).then((handle) => {
       notifIdRef.current = handle;
@@ -216,6 +225,15 @@ export function RestTimerProvider({ children }) {
     setPipActive(false);
   }
 
+  // La pantalla de ejercicio llama esto en cada cambio (peso, serie) para que
+  // la ventana flotante muestre el estado actual incluso cuando NO está
+  // corriendo el descanso. Mientras hay un descanso activo, el dibujo lo
+  // maneja tick() y esto no interfiere.
+  function updatePiPFrame({ exerciseName, serieText, weightText }) {
+    if (infoRef.current) return; // hay un descanso activo, no lo pisamos
+    drawExerciseFrame({ exerciseName, resting: false, serieText, weightText });
+  }
+
   return (
     <RestTimerContext.Provider
       value={{
@@ -230,6 +248,7 @@ export function RestTimerProvider({ children }) {
         pipActive,
         enterPiP,
         exitPiP,
+        updatePiPFrame,
         start,
         adjust,
         skip,

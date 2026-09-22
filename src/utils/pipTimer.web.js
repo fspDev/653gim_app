@@ -1,8 +1,8 @@
-// Picture-in-Picture "de verdad" para el cronómetro de descanso: dibujamos el
-// tiempo en un <canvas> oculto, lo convertimos en un video en vivo
-// (canvas.captureStream) y le pedimos al navegador que lo muestre en la
-// ventanita flotante nativa de Android/Chrome — el mismo mecanismo que usa
-// YouTube. Por eso sigue contando y visible aunque cambies de app.
+// Picture-in-Picture "de verdad" para el ejercicio en curso: dibujamos el
+// estado (serie, peso, descanso) en un <canvas> oculto, lo convertimos en un
+// video en vivo (canvas.captureStream) y le pedimos al navegador que lo
+// muestre en la ventanita flotante nativa de Android/Chrome — el mismo
+// mecanismo que usa YouTube. Por eso sigue visible aunque cambies de app.
 let canvas = null;
 let ctx = null;
 let video = null;
@@ -46,7 +46,14 @@ export function isPiPSupported() {
   return typeof document !== 'undefined' && 'pictureInPictureEnabled' in document && document.pictureInPictureEnabled;
 }
 
-export function drawTimerFrame({ title, timeText, subText, percent }) {
+// payload:
+//  - exerciseName: nombre del ejercicio (siempre)
+//  - resting: true mientras corre el descanso
+//  - timeText: "mm:ss" restante (solo si resting)
+//  - percent: 0..1 del descanso consumido (solo si resting)
+//  - serieText: ej. "Serie 2 de 4" o "¡Listo!" (estado siempre visible)
+//  - weightText: ej. "40 kg" (solo si NO resting y aplica peso)
+export function drawExerciseFrame({ exerciseName, resting, timeText, percent, serieText, weightText }) {
   ensureElements();
   const w = canvas.width;
   const h = canvas.height;
@@ -56,36 +63,62 @@ export function drawTimerFrame({ title, timeText, subText, percent }) {
 
   const cx = w / 2;
   const cy = h / 2 - 16;
-  const r = 118;
-  const p = Math.max(0, Math.min(1, percent || 0));
 
-  ctx.lineCap = 'round';
+  if (resting) {
+    const r = 118;
+    const p = Math.max(0, Math.min(1, percent || 0));
 
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, 0, Math.PI * 2);
-  ctx.strokeStyle = '#202020';
-  ctx.lineWidth = 16;
-  ctx.stroke();
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.strokeStyle = '#202020';
+    ctx.lineWidth = 16;
+    ctx.stroke();
 
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * p);
-  ctx.strokeStyle = '#e3202f';
-  ctx.lineWidth = 16;
-  ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * p);
+    ctx.strokeStyle = '#e3202f';
+    ctx.lineWidth = 16;
+    ctx.stroke();
 
-  ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = '800 56px system-ui, -apple-system, sans-serif';
+    ctx.fillText(timeText || '', cx, cy - 4);
+
+    ctx.fillStyle = '#8a8a8f';
+    ctx.font = '600 15px system-ui, -apple-system, sans-serif';
+    ctx.fillText('descanso restante', cx, cy + 40);
+
+    ctx.fillStyle = '#e3202f';
+    ctx.font = '700 15px system-ui, -apple-system, sans-serif';
+    ctx.fillText(serieText || '', cx, cy + 70);
+  } else {
+    ctx.fillStyle = '#e3202f';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = '800 15px system-ui, -apple-system, sans-serif';
+    ctx.fillText('EN CURSO', cx, cy - 90);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '800 46px system-ui, -apple-system, sans-serif';
+    ctx.fillText(serieText || '', cx, cy - 20);
+
+    if (weightText) {
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '800 34px system-ui, -apple-system, sans-serif';
+      ctx.fillText(weightText, cx, cy + 40);
+      ctx.fillStyle = '#8a8a8f';
+      ctx.font = '600 14px system-ui, -apple-system, sans-serif';
+      ctx.fillText('peso actual', cx, cy + 72);
+    }
+  }
+
+  ctx.fillStyle = resting ? '#e3202f' : '#8a8a8f';
   ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.font = '800 56px system-ui, -apple-system, sans-serif';
-  ctx.fillText(timeText || '', cx, cy - 4);
-
-  ctx.fillStyle = '#8a8a8f';
-  ctx.font = '600 16px system-ui, -apple-system, sans-serif';
-  ctx.fillText(subText || 'restantes', cx, cy + 40);
-
-  ctx.fillStyle = '#e3202f';
   ctx.font = '800 18px system-ui, -apple-system, sans-serif';
-  ctx.fillText((title || '').toUpperCase(), cx, h - 34);
+  ctx.fillText((exerciseName || '').toUpperCase(), cx, h - 34);
 }
 
 export async function requestTimerPiP() {
