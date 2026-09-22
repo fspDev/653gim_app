@@ -7,6 +7,15 @@ import {
   notifyRestFinished,
 } from '../services/notifications';
 import { acquireWakeLock, releaseWakeLock } from '../utils/wakeLock';
+import {
+  isPiPSupported,
+  drawTimerFrame,
+  requestTimerPiP,
+  exitTimerPiP,
+  stopPiPStream,
+  onPiPLeave,
+} from '../utils/pipTimer';
+import { formatMMSS } from '../utils/time';
 
 const STORAGE_KEY = 'activeRestTimer';
 
@@ -20,18 +29,27 @@ const RestTimerContext = createContext(null);
 export function RestTimerProvider({ children }) {
   const [info, setInfo] = useState(null); // { exerciseId, exerciseName, dayId, total, isLastSet }
   const [restLeft, setRestLeft] = useState(0);
+  const [pipActive, setPipActive] = useState(false);
   const endAtRef = useRef(null);
   const totalRef = useRef(0);
   const intervalRef = useRef(null);
   const notifIdRef = useRef(null);
+  const infoRef = useRef(null);
 
   // Refs para poder usar estas funciones desde los listeners sin recrearlos.
   const tickRef = useRef(() => {});
+
+  useEffect(() => {
+    onPiPLeave(() => setPipActive(false));
+  }, []);
 
   function finish({ notify }) {
     clearInterval(intervalRef.current);
     setRestLeft(0);
     setInfo(null);
+    infoRef.current = null;
+    stopPiPStream();
+    setPipActive(false);
 
     const handle = notifIdRef.current;
     if (handle && !handle.fired) {
@@ -58,6 +76,12 @@ export function RestTimerProvider({ children }) {
       return;
     }
     setRestLeft(left);
+    drawTimerFrame({
+      title: infoRef.current?.exerciseName || '',
+      timeText: formatMMSS(left),
+      subText: 'restantes',
+      percent: totalRef.current ? left / totalRef.current : 0,
+    });
   }
   tickRef.current = tick;
 
@@ -78,13 +102,15 @@ export function RestTimerProvider({ children }) {
         if (left > 0) {
           endAtRef.current = parsed.endAt;
           totalRef.current = parsed.total;
-          setInfo({
+          const resumedInfo = {
             exerciseId: parsed.exerciseId,
             exerciseName: parsed.exerciseName,
             dayId: parsed.dayId,
             total: parsed.total,
             isLastSet: !!parsed.isLastSet,
-          });
+          };
+          setInfo(resumedInfo);
+          infoRef.current = resumedInfo;
           acquireWakeLock();
           runInterval();
         } else {
@@ -126,8 +152,11 @@ export function RestTimerProvider({ children }) {
     const endAt = Date.now() + seconds * 1000;
     endAtRef.current = endAt;
     totalRef.current = seconds;
-    setInfo({ exerciseId, exerciseName, dayId, total: seconds, isLastSet: !!isLastSet });
+    const newInfo = { exerciseId, exerciseName, dayId, total: seconds, isLastSet: !!isLastSet };
+    setInfo(newInfo);
+    infoRef.current = newInfo;
     setRestLeft(seconds);
+    drawTimerFrame({ title: exerciseName, timeText: formatMMSS(seconds), subText: 'restantes', percent: 1 });
     AsyncStorage.setItem(
       STORAGE_KEY,
       JSON.stringify({ exerciseId, exerciseName, dayId, endAt, total: seconds, isLastSet: !!isLastSet })
@@ -145,6 +174,7 @@ export function RestTimerProvider({ children }) {
     const newTotal = Math.max(totalRef.current, totalRef.current + delta);
     totalRef.current = newTotal;
     setInfo((prev) => (prev ? { ...prev, total: newTotal } : prev));
+    if (infoRef.current) infoRef.current = { ...infoRef.current, total: newTotal };
 
     // La notificación programada apuntaba al horario viejo: la reprogramamos.
     const handle = notifIdRef.current;
@@ -173,6 +203,19 @@ export function RestTimerProvider({ children }) {
     finish({ notify: false });
   }
 
+  // Tiene que llamarse directamente desde el toque del usuario (el botón "🗗
+  // Modo flotante"): el navegador exige un gesto reciente para conceder PiP.
+  async function enterPiP() {
+    const ok = await requestTimerPiP();
+    setPipActive(ok);
+    return ok;
+  }
+
+  function exitPiP() {
+    exitTimerPiP();
+    setPipActive(false);
+  }
+
   return (
     <RestTimerContext.Provider
       value={{
@@ -183,6 +226,10 @@ export function RestTimerProvider({ children }) {
         isLastSet: !!info?.isLastSet,
         restLeft,
         restTotal: info?.total || 0,
+        pipSupported: isPiPSupported(),
+        pipActive,
+        enterPiP,
+        exitPiP,
         start,
         adjust,
         skip,

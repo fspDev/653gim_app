@@ -1,5 +1,5 @@
-import React, { useCallback, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import React, { useCallback, useMemo, useState } from 'react';
+import { View, Text, ScrollView, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { colors, radius } from '../../theme/colors';
 import { useAuth } from '../../context/AuthContext';
@@ -7,21 +7,50 @@ import RingProgress from '../../components/RingProgress';
 import { getRecentSessions, computePercent, todayId } from '../../services/sessions';
 import { Badge } from '../../components/UI';
 
+// Junta, por nombre de ejercicio, la evolución de peso a lo largo de las
+// sesiones (el mayor peso usado ese día, para no confundir con calentamiento).
+function buildWeightHistory(sessions) {
+  const map = {};
+  const sorted = [...sessions].sort((a, b) => a.date.localeCompare(b.date));
+  sorted.forEach((s) => {
+    s.exercises.forEach((ex) => {
+      if (!ex.sets?.length) return;
+      const weights = ex.sets.map((st) => Number(st.weight) || 0);
+      const maxWeight = Math.max(...weights);
+      if (!map[ex.name]) map[ex.name] = [];
+      map[ex.name].push({ date: s.date, weight: maxWeight, reps: ex.reps, doneSets: ex.sets.length });
+    });
+  });
+  return map;
+}
+
+function shortDate(iso) {
+  const [, m, d] = iso.split('-');
+  return `${d}/${m}`;
+}
+
 export default function ProgressScreen() {
   const { user } = useAuth();
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedExercise, setSelectedExercise] = useState(null);
 
   useFocusEffect(
     useCallback(() => {
       (async () => {
         setLoading(true);
-        const list = await getRecentSessions(user.uid, 30);
+        const list = await getRecentSessions(user.uid, 60);
         setSessions(list);
         setLoading(false);
       })();
     }, [user])
   );
+
+  const weightHistory = useMemo(() => buildWeightHistory(sessions), [sessions]);
+  const exerciseNames = Object.keys(weightHistory).sort();
+  const activeExercise = selectedExercise && weightHistory[selectedExercise] ? selectedExercise : exerciseNames[0];
+  const activeHistory = activeExercise ? weightHistory[activeExercise] : [];
+  const maxWeightInHistory = activeHistory.length ? Math.max(...activeHistory.map((h) => h.weight), 1) : 1;
 
   if (loading) {
     return (
@@ -51,6 +80,74 @@ export default function ProgressScreen() {
         <StatBox value={String(completedDays)} label="Días completados" />
         <StatBox value={String(totalSets)} label="Series totales" />
       </View>
+
+      {exerciseNames.length > 0 && (
+        <>
+          <Text style={styles.sectionLabel}>Progreso de peso por ejercicio</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              {exerciseNames.map((name) => (
+                <Pressable
+                  key={name}
+                  onPress={() => setSelectedExercise(name)}
+                  style={[styles.exChip, name === activeExercise && styles.exChipActive]}
+                >
+                  <Text style={[styles.exChipText, name === activeExercise && styles.exChipTextActive]}>{name}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </ScrollView>
+
+          {activeHistory.length > 0 && (
+            <View style={styles.chartCard}>
+              <View style={styles.chartRow}>
+                {activeHistory.slice(-10).map((h, i) => (
+                  <View key={i} style={styles.barCol}>
+                    <Text style={styles.barValue}>{h.weight}</Text>
+                    <View style={styles.barTrack}>
+                      <View
+                        style={[
+                          styles.barFill,
+                          { height: `${Math.max(6, (h.weight / maxWeightInHistory) * 100)}%` },
+                        ]}
+                      />
+                    </View>
+                    <Text style={styles.barDate}>{shortDate(h.date)}</Text>
+                  </View>
+                ))}
+              </View>
+
+              <View style={styles.tableHeader}>
+                <Text style={[styles.tableHeadText, { flex: 1 }]}>Fecha</Text>
+                <Text style={[styles.tableHeadText, { width: 60, textAlign: 'right' }]}>Peso</Text>
+                <Text style={[styles.tableHeadText, { width: 80, textAlign: 'right' }]}>Series</Text>
+              </View>
+              {[...activeHistory].reverse().map((h, i) => {
+                const prev = activeHistory[activeHistory.indexOf(h) - 1];
+                const delta = prev ? h.weight - prev.weight : 0;
+                return (
+                  <View key={i} style={styles.tableRow}>
+                    <Text style={[styles.tableCell, { flex: 1 }]}>{h.date}</Text>
+                    <Text style={[styles.tableCell, { width: 60, textAlign: 'right', fontWeight: '800' }]}>
+                      {h.weight}kg
+                    </Text>
+                    <Text style={[styles.tableCell, { width: 80, textAlign: 'right' }]}>
+                      {h.doneSets}×{h.reps}
+                      {delta !== 0 && (
+                        <Text style={{ color: delta > 0 ? colors.green : '#ff6b76' }}>
+                          {' '}
+                          {delta > 0 ? '↑' : '↓'}
+                          {Math.abs(delta)}
+                        </Text>
+                      )}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
+          )}
+        </>
+      )}
 
       <Text style={styles.sectionLabel}>Historial reciente</Text>
       {sessions.length === 0 && <Text style={styles.empty}>Todavía no hay sesiones registradas.</Text>}
@@ -103,4 +200,19 @@ const styles = StyleSheet.create({
   histAv: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.black3, alignItems: 'center', justifyContent: 'center' },
   histName: { color: colors.white, fontSize: 13.5, fontWeight: '700' },
   histSub: { color: colors.gray1, fontSize: 11.5, marginTop: 2 },
+  exChip: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 18, backgroundColor: colors.black2, borderWidth: 1, borderColor: colors.border },
+  exChipActive: { backgroundColor: colors.red, borderColor: colors.red },
+  exChipText: { color: colors.gray1, fontSize: 12, fontWeight: '700' },
+  exChipTextActive: { color: '#fff' },
+  chartCard: { backgroundColor: colors.black2, borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, padding: 16 },
+  chartRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, height: 150, marginBottom: 16 },
+  barCol: { flex: 1, alignItems: 'center', height: '100%', justifyContent: 'flex-end' },
+  barValue: { color: colors.white, fontSize: 10, fontWeight: '700', marginBottom: 3 },
+  barTrack: { width: '100%', flex: 1, justifyContent: 'flex-end' },
+  barFill: { width: '100%', backgroundColor: colors.red, borderRadius: 4, minHeight: 6 },
+  barDate: { color: colors.gray1, fontSize: 9, marginTop: 5 },
+  tableHeader: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#2a2a2a', paddingBottom: 8, marginBottom: 4 },
+  tableHeadText: { color: colors.gray1, fontSize: 10.5, fontWeight: '700', textTransform: 'uppercase' },
+  tableRow: { flexDirection: 'row', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#1c1c1c' },
+  tableCell: { color: colors.white, fontSize: 12.5 },
 });
