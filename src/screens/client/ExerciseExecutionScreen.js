@@ -34,6 +34,29 @@ export default function ExerciseExecutionScreen({ route, navigation }) {
     })();
   }, [exerciseId]);
 
+  const doneSets = exercise ? exercise.sets.length : 0;
+  const currentSerie = exercise ? Math.min(doneSets + 1, exercise.targetSets) : 0;
+  const finished = exercise ? doneSets >= exercise.targetSets : false;
+  const isResting = restTimer.resting && restTimer.exerciseId === exerciseId;
+
+  // Mantiene la ventana flotante al día durante TODO el ejercicio (no solo
+  // el descanso): nombre, serie actual y peso. Si hay un descanso activo,
+  // updatePiPFrame no hace nada (ese dibujo lo maneja el cronómetro).
+  // OJO: este hook tiene que llamarse siempre, en el mismo orden, sin
+  // importar si "exercise" todavía no cargó (si no, React tira "Rendered
+  // more hooks than during the previous render" y la pantalla queda en blanco).
+  useEffect(() => {
+    if (!exercise) return;
+    restTimer.updatePiPFrame({
+      exerciseName: exercise.name,
+      serieText: finished ? '¡Listo!' : `Serie ${currentSerie} de ${exercise.targetSets}`,
+      weightText: finished ? '' : `${weight} kg`,
+    });
+    // restTimer.resting entra a propósito: cuando el descanso termina, hay
+    // que redibujar la ventana flotante con el estado activo (si no, se queda
+    // trabada mostrando el último cuadro del descanso).
+  }, [exercise, currentSerie, finished, weight, restTimer.resting]);
+
   if (loading) {
     return (
       <View style={[styles.screen, { alignItems: 'center', justifyContent: 'center' }]}>
@@ -54,25 +77,6 @@ export default function ExerciseExecutionScreen({ route, navigation }) {
       </View>
     );
   }
-
-  const doneSets = exercise.sets.length;
-  const currentSerie = Math.min(doneSets + 1, exercise.targetSets);
-  const finished = doneSets >= exercise.targetSets;
-  const isResting = restTimer.resting && restTimer.exerciseId === exerciseId;
-
-  // Mantiene la ventana flotante al día durante TODO el ejercicio (no solo
-  // el descanso): nombre, serie actual y peso. Si hay un descanso activo,
-  // updatePiPFrame no hace nada (ese dibujo lo maneja el cronómetro).
-  useEffect(() => {
-    restTimer.updatePiPFrame({
-      exerciseName: exercise.name,
-      serieText: finished ? '¡Listo!' : `Serie ${currentSerie} de ${exercise.targetSets}`,
-      weightText: finished ? '' : `${weight} kg`,
-    });
-    // restTimer.resting entra a propósito: cuando el descanso termina, hay
-    // que redibujar la ventana flotante con el estado activo (si no, se queda
-    // trabada mostrando el último cuadro del descanso).
-  }, [exercise.name, currentSerie, exercise.targetSets, finished, weight, restTimer.resting]);
 
   async function completeSerie() {
     const updatedSets = [...exercise.sets, { weight, reps: exercise.reps, completedAt: Date.now() }];
