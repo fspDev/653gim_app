@@ -17,6 +17,7 @@ import {
 import { formatMMSS } from '../utils/time';
 
 const STORAGE_KEY = 'activeRestTimer';
+const AUTO_PIP_KEY = 'autoPiPEnabled';
 
 // Si al volver a la app el descanso ya había terminado hace más de esto,
 // no avisamos: el aviso llegaría tarde y sin sentido (era el caso molesto de
@@ -29,6 +30,7 @@ export function RestTimerProvider({ children }) {
   const [info, setInfo] = useState(null); // { exerciseId, exerciseName, dayId, total, isLastSet }
   const [restLeft, setRestLeft] = useState(0);
   const [pipActive, setPipActive] = useState(false);
+  const [autoPiP, setAutoPiPState] = useState(true);
   const endAtRef = useRef(null);
   const totalRef = useRef(0);
   const intervalRef = useRef(null);
@@ -40,7 +42,17 @@ export function RestTimerProvider({ children }) {
 
   useEffect(() => {
     onPiPLeave(() => setPipActive(false));
+    AsyncStorage.getItem(AUTO_PIP_KEY)
+      .then((v) => {
+        if (v !== null) setAutoPiPState(v === '1');
+      })
+      .catch(() => {});
   }, []);
+
+  function setAutoPiP(enabled) {
+    setAutoPiPState(enabled);
+    AsyncStorage.setItem(AUTO_PIP_KEY, enabled ? '1' : '0').catch(() => {});
+  }
 
   function finish({ notify }) {
     clearInterval(intervalRef.current);
@@ -246,6 +258,8 @@ export function RestTimerProvider({ children }) {
         restTotal: info?.total || 0,
         pipSupported: isPiPSupported(),
         pipActive,
+        autoPiP,
+        setAutoPiP,
         enterPiP,
         exitPiP,
         updatePiPFrame,

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, Pressable, Switch, StyleSheet } from 'react-native';
 import { colors, radius } from '../../theme/colors';
 import { useAuth } from '../../context/AuthContext';
+import { useRestTimer } from '../../context/RestTimerContext';
 import { updateUserProfile } from '../../services/users';
 import {
   scheduleGymDayReminders,
@@ -25,6 +26,7 @@ const WEEK_DAYS = [
 
 export default function SettingsScreen() {
   const { user, profile, logout } = useAuth();
+  const restTimer = useRestTimer();
   const [weeklyDays, setWeeklyDays] = useState(profile?.weeklyDays || []);
   const [notifPrefs, setNotifPrefs] = useState(
     profile?.notifPrefs || { restEnd: true, gymReminder: true, feeReminder: false }
@@ -110,6 +112,18 @@ export default function SettingsScreen() {
         value={notifPrefs.feeReminder}
         onToggle={() => toggleNotif('feeReminder')}
       />
+
+      {restTimer.pipSupported && (
+        <>
+          <Text style={styles.sectionLabel}>Ventana flotante</Text>
+          <NotifRow
+            title="Abrirla sola al descansar"
+            sub="Al marcar una serie queda flotando, así la ves aunque cambies de app"
+            value={restTimer.autoPiP}
+            onToggle={() => restTimer.setAutoPiP(!restTimer.autoPiP)}
+          />
+        </>
+      )}
 
       <Text style={styles.sectionLabel}>Probar avisos</Text>
       <View style={styles.diagBox}>

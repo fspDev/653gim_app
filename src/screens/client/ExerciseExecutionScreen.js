@@ -79,6 +79,14 @@ export default function ExerciseExecutionScreen({ route, navigation }) {
   }
 
   async function completeSerie() {
+    // La ventana flotante se pide ACÁ, todavía dentro del toque del usuario.
+    // El navegador solo la concede si hay un gesto reciente: no se puede
+    // abrir después, justo cuando cambiás de app. Abriéndola en este momento,
+    // para cuando salís de la app ya está flotando.
+    if (restTimer.autoPiP && restTimer.pipSupported && !restTimer.pipActive) {
+      restTimer.enterPiP();
+    }
+
     const updatedSets = [...exercise.sets, { weight, reps: exercise.reps, completedAt: Date.now() }];
     const updatedExercise = { ...exercise, sets: updatedSets, lastWeight: weight };
     const updatedExercises = session.exercises.map((e) =>
@@ -87,16 +95,14 @@ export default function ExerciseExecutionScreen({ route, navigation }) {
     const updatedSession = { ...session, exercises: updatedExercises };
     setExercise(updatedExercise);
     setSession(updatedSession);
-    await saveSession(user.uid, todayId(), updatedSession);
-
-    // Queda como valor por defecto para la próxima vez que toque este ejercicio.
-    saveExercisePref(user.uid, exercise.name, { weight, restSeconds: exercise.restSeconds });
 
     const wasLast = updatedSets.length >= exercise.targetSets;
     const nextSerieText = wasLast ? 'Ejercicio completado' : `Serie ${updatedSets.length + 1} de ${exercise.targetSets}`;
 
-    // El descanso también corre después de la última serie: se sigue
-    // descansando antes de pasar al ejercicio siguiente.
+    // El descanso arranca antes de guardar: si la red está lenta, el
+    // cronómetro (y la ventana flotante) no tienen por qué esperarla.
+    // También corre después de la última serie: se sigue descansando antes
+    // de pasar al ejercicio siguiente.
     restTimer.start({
       exerciseId,
       exerciseName: exercise.name,
@@ -105,6 +111,10 @@ export default function ExerciseExecutionScreen({ route, navigation }) {
       isLastSet: wasLast,
       serieText: nextSerieText,
     });
+
+    await saveSession(user.uid, todayId(), updatedSession);
+    // Queda como valor por defecto para la próxima vez que toque este ejercicio.
+    saveExercisePref(user.uid, exercise.name, { weight, restSeconds: exercise.restSeconds });
   }
 
   async function adjustRestDuration(delta) {
