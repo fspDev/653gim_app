@@ -98,14 +98,14 @@ async function showWebNotification(title, body) {
 }
 
 // Dispara la notificación + vibración YA (cuando el cronómetro llega a cero).
-export async function notifyRestFinished() {
+export async function notifyRestFinished(title = REST_TITLE, body = REST_BODY) {
   vibrateNow(); // funciona si el navegador todavía considera "activo" al usuario
   if (isWeb) {
-    return showWebNotification(REST_TITLE, REST_BODY);
+    return showWebNotification(title, body);
   }
   try {
     await Notifications.scheduleNotificationAsync({
-      content: { title: REST_TITLE, body: REST_BODY, sound: true, vibrate: [0, ...VIBRATE_PATTERN] },
+      content: { title, body, sound: true, vibrate: [0, ...VIBRATE_PATTERN] },
       trigger: null, // inmediata
     });
     return true;
@@ -132,7 +132,7 @@ export async function testNotification() {
 // Programa la notificación por adelantado. En web los timers se congelan si el
 // sistema suspende la app, así que esto es "el mejor esfuerzo": el disparo
 // garantizado ocurre en notifyRestFinished() cuando el cronómetro llega a cero.
-export async function scheduleRestEndNotification(seconds) {
+export async function scheduleRestEndNotification(seconds, title = REST_TITLE, body = REST_BODY) {
   const ok = await ensureNotificationPermission();
   if (!ok) return null;
 
@@ -140,15 +140,15 @@ export async function scheduleRestEndNotification(seconds) {
     const handle = { web: true, fired: false, timeoutId: null };
     handle.timeoutId = setTimeout(() => {
       handle.fired = true;
-      showWebNotification(REST_TITLE, REST_BODY);
+      showWebNotification(title, body);
     }, Math.max(1, Math.round(seconds)) * 1000);
     return handle;
   }
 
   const id = await Notifications.scheduleNotificationAsync({
     content: {
-      title: REST_TITLE,
-      body: REST_BODY,
+      title,
+      body,
       sound: true,
       vibrate: [0, ...VIBRATE_PATTERN],
     },

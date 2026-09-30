@@ -8,5 +8,7 @@ export async function requestTimerPiP() {
   return false;
 }
 export function exitTimerPiP() {}
-export function stopPiPStream() {}
 export function onPiPLeave() {}
+export function onPiPEnter() {}
+export async function armAutoPiP() {}
+export function disarmAutoPiP() {}

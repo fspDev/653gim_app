@@ -8,6 +8,9 @@ let ctx = null;
 let video = null;
 let stream = null;
 let leaveCallback = null;
+let enterCallback = null;
+let autoOnLeave = false;
+let openedByLeave = false;
 
 function ensureElements() {
   if (canvas) return;
@@ -20,6 +23,9 @@ function ensureElements() {
   video.muted = true;
   video.playsInline = true;
   video.setAttribute('playsinline', '');
+  // Safari: pasa solo a flotante al salir de la app si el video está andando.
+  video.autoPictureInPicture = true;
+  video.setAttribute('autopictureinpicture', '');
   // Tiene que existir en el DOM (no display:none) para que el navegador
   // permita pedir PiP, pero no hace falta que se vea en la pantalla normal.
   video.style.position = 'fixed';
@@ -29,31 +35,88 @@ function ensureElements() {
   video.style.height = '2px';
   document.body.appendChild(video);
 
-  // El usuario también puede cerrar la ventanita flotante con la X del
-  // navegador; avisamos para que la UI deje de mostrarla como activa.
   video.addEventListener('leavepictureinpicture', () => {
+    openedByLeave = false;
     if (leaveCallback) leaveCallback();
+  });
+  video.addEventListener('enterpictureinpicture', () => {
+    if (enterCallback) enterCallback();
+  });
+
+  // Chrome llama a este handler cuando el usuario sale de la pestaña/app
+  // mientras hay un video andando, y ahí SÍ deja abrir la ventana flotante
+  // sin un toque (es el "PiP automático" que usan las videollamadas).
+  try {
+    navigator.mediaSession?.setActionHandler('enterpictureinpicture', () => {
+      if (!autoOnLeave || !stream) return;
+      openedByLeave = true;
+      video.requestPictureInPicture().catch(() => {
+        openedByLeave = false;
+      });
+    });
+  } catch (e) {}
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      // Por si el navegador no usa el handler de arriba pero igual lo permite.
+      if (autoOnLeave && stream && document.pictureInPictureElement !== video) {
+        openedByLeave = true;
+        video.requestPictureInPicture().catch(() => {
+          openedByLeave = false;
+        });
+      }
+    } else if (openedByLeave && document.pictureInPictureElement === video) {
+      // Se abrió sola al salir: al volver a la app se cierra sola.
+      document.exitPictureInPicture().catch(() => {});
+    }
   });
 }
 
-// Se llama una sola vez desde el contexto de React para enterarse cuando el
-// usuario cierra la ventana flotante desde el navegador (no desde la app).
 export function onPiPLeave(callback) {
   leaveCallback = callback;
+}
+
+export function onPiPEnter(callback) {
+  enterCallback = callback;
 }
 
 export function isPiPSupported() {
   return typeof document !== 'undefined' && 'pictureInPictureEnabled' in document && document.pictureInPictureEnabled;
 }
 
+async function ensureStream() {
+  ensureElements();
+  if (!stream) {
+    stream = canvas.captureStream(2);
+    video.srcObject = stream;
+  }
+  if (video.paused) await video.play();
+}
+
+// Deja el video andando (oculto) para que, si el usuario cambia de app, el
+// navegador pueda pasarlo a ventana flotante. Un video mudo puede arrancar
+// sin toque del usuario.
+export async function armAutoPiP() {
+  if (!isPiPSupported()) return;
+  autoOnLeave = true;
+  try {
+    await ensureStream();
+  } catch (e) {}
+}
+
+export function disarmAutoPiP() {
+  autoOnLeave = false;
+}
+
 // payload:
 //  - exerciseName: nombre del ejercicio (siempre)
-//  - resting: true mientras corre el descanso
+//  - resting: true mientras corre un cronómetro (descanso o bici)
 //  - timeText: "mm:ss" restante (solo si resting)
-//  - percent: 0..1 del descanso consumido (solo si resting)
-//  - serieText: ej. "Serie 2 de 4" o "¡Listo!" (estado siempre visible)
+//  - percent: 0..1 restante (solo si resting)
+//  - ringLabel: texto bajo el tiempo, ej. "descanso restante"
+//  - serieText: ej. "Serie 2 de 4" o "¡Listo!"
 //  - weightText: ej. "40 kg" (solo si NO resting y aplica peso)
-export function drawExerciseFrame({ exerciseName, resting, timeText, percent, serieText, weightText }) {
+export function drawExerciseFrame({ exerciseName, resting, timeText, percent, ringLabel, serieText, weightText }) {
   ensureElements();
   const w = canvas.width;
   const h = canvas.height;
@@ -89,7 +152,7 @@ export function drawExerciseFrame({ exerciseName, resting, timeText, percent, se
 
     ctx.fillStyle = '#8a8a8f';
     ctx.font = '600 15px system-ui, -apple-system, sans-serif';
-    ctx.fillText('descanso restante', cx, cy + 40);
+    ctx.fillText(ringLabel || 'descanso restante', cx, cy + 40);
 
     ctx.fillStyle = '#e3202f';
     ctx.font = '700 15px system-ui, -apple-system, sans-serif';
@@ -125,12 +188,9 @@ export async function requestTimerPiP() {
   ensureElements();
   if (!isPiPSupported()) return false;
   try {
-    if (!stream) {
-      stream = canvas.captureStream(2);
-      video.srcObject = stream;
-      await video.play();
-    }
+    await ensureStream();
     if (document.pictureInPictureElement !== video) {
+      openedByLeave = false;
       await video.requestPictureInPicture();
     }
     return true;
@@ -142,16 +202,5 @@ export async function requestTimerPiP() {
 export function exitTimerPiP() {
   try {
     if (document.pictureInPictureElement) document.exitPictureInPicture();
-  } catch (e) {}
-}
-
-export function stopPiPStream() {
-  exitTimerPiP();
-  try {
-    if (stream) {
-      stream.getTracks().forEach((t) => t.stop());
-      stream = null;
-    }
-    if (video) video.srcObject = null;
   } catch (e) {}
 }

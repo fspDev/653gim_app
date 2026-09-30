@@ -15,6 +15,7 @@ import {
 } from '../../services/clientAccounts';
 import { PrimaryButton, SecondaryButton, FormField } from '../../components/UI';
 import { notify, confirmAction } from '../../utils/platformAlert';
+import { dayWarmupMinutes, dayCooldownMinutes } from '../../services/timedBlocks';
 
 export default function ClientDetailScreen({ route, navigation }) {
   const { clientId } = route.params;
@@ -84,6 +85,10 @@ export default function ClientDetailScreen({ route, navigation }) {
     );
   }
 
+  function updateDayField(dayId, field, value) {
+    setDays((prev) => prev.map((d) => (d.id === dayId ? { ...d, [field]: Number(value) || 0 } : d)));
+  }
+
   function removeExercise(dayId, group, exId) {
     setDays((prev) =>
       prev.map((d) => {
@@ -125,7 +130,13 @@ export default function ClientDetailScreen({ route, navigation }) {
   async function savePlan(day) {
     setSaving(true);
     try {
-      await savePlanDay(clientId, day.id, { label: day.label, order: day.order, groups: day.groups });
+      await savePlanDay(clientId, day.id, {
+        label: day.label,
+        order: day.order,
+        groups: day.groups,
+        warmupMinutes: dayWarmupMinutes(day),
+        cooldownMinutes: dayCooldownMinutes(day),
+      });
       const allExercises = [...day.groups.core, ...day.groups.fuerza];
       await Promise.all(
         allExercises.map((ex) =>
@@ -311,6 +322,21 @@ export default function ClientDetailScreen({ route, navigation }) {
               <Text style={styles.deleteDayText}>Eliminar día</Text>
             </Pressable>
           </View>
+          <View style={styles.bikeBox}>
+            <Text style={styles.bikeTitle}>🚴 Bici fija (minutos · 0 = sin bloque)</Text>
+            <View style={styles.numRow}>
+              <NumField
+                label="Calentamiento"
+                value={dayWarmupMinutes(day)}
+                onChange={(v) => updateDayField(day.id, 'warmupMinutes', v)}
+              />
+              <NumField
+                label="Elongación final"
+                value={dayCooldownMinutes(day)}
+                onChange={(v) => updateDayField(day.id, 'cooldownMinutes', v)}
+              />
+            </View>
+          </View>
           <GroupEditor
             title="Core"
             exercises={day.groups.core}
@@ -466,6 +492,11 @@ const styles = StyleSheet.create({
     borderRadius: 8, paddingVertical: 6, paddingHorizontal: 8, textAlign: 'center',
   },
   delBtn: { padding: 4 },
+  bikeBox: {
+    backgroundColor: colors.black2, borderWidth: 1, borderColor: colors.border,
+    borderRadius: 12, padding: 12, marginTop: 10, marginBottom: 4,
+  },
+  bikeTitle: { color: colors.white, fontSize: 12, fontWeight: '700', marginBottom: 8 },
   addBtn: {
     borderWidth: 1.5, borderColor: '#333', borderStyle: 'dashed', borderRadius: 12,
     paddingVertical: 12, alignItems: 'center', marginTop: 2,

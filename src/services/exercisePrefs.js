@@ -21,12 +21,13 @@ export function exerciseKey(name) {
 
 // Guarda el último peso / descanso usado en un ejercicio, para que la próxima
 // vez arranque con esos valores en vez de los de fábrica.
-export async function saveExercisePref(uid, name, { weight, restSeconds }) {
+export async function saveExercisePref(uid, name, { weight, restSeconds, durationSeconds }) {
   const key = exerciseKey(name);
   if (!key) return;
   const patch = {};
   if (weight !== undefined) patch.weight = weight;
   if (restSeconds !== undefined) patch.restSeconds = restSeconds;
+  if (durationSeconds !== undefined) patch.durationSeconds = durationSeconds;
   if (!Object.keys(patch).length) return;
   patch.updatedAt = Date.now();
   try {

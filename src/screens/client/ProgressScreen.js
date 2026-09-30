@@ -14,7 +14,7 @@ function buildWeightHistory(sessions) {
   const sorted = [...sessions].sort((a, b) => a.date.localeCompare(b.date));
   sorted.forEach((s) => {
     s.exercises.forEach((ex) => {
-      if (!ex.sets?.length) return;
+      if (!ex.sets?.length || ex.kind === 'timed') return;
       const weights = ex.sets.map((st) => Number(st.weight) || 0);
       const maxWeight = Math.max(...weights);
       if (!map[ex.name]) map[ex.name] = [];

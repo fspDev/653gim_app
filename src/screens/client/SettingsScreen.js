@@ -15,6 +15,12 @@ import {
 } from '../../services/notifications';
 import { SecondaryButton } from '../../components/UI';
 
+const PIP_MODES = [
+  { key: 'onLeave', title: 'Al cambiar de app', sub: 'Aparece sola cuando salís y se va cuando volvés' },
+  { key: 'onSet', title: 'Al marcar una serie', sub: 'Usala si tu celular no la abre sola al salir' },
+  { key: 'manual', title: 'Solo con el botón', sub: 'Muestra un botón 🗗 en la pantalla del ejercicio' },
+];
+
 const WEEK_DAYS = [
   { key: 'mon', label: 'LUN' },
   { key: 'tue', label: 'MAR' },
@@ -116,12 +122,20 @@ export default function SettingsScreen() {
       {restTimer.pipSupported && (
         <>
           <Text style={styles.sectionLabel}>Ventana flotante</Text>
-          <NotifRow
-            title="Abrirla sola al descansar"
-            sub="Al marcar una serie queda flotando, así la ves aunque cambies de app"
-            value={restTimer.autoPiP}
-            onToggle={() => restTimer.setAutoPiP(!restTimer.autoPiP)}
-          />
+          <Text style={styles.hint}>¿Cuándo aparece?</Text>
+          {PIP_MODES.map((m) => (
+            <Pressable
+              key={m.key}
+              onPress={() => restTimer.setPipMode(m.key)}
+              style={[styles.pipOption, restTimer.pipMode === m.key && styles.pipOptionActive]}
+            >
+              <View style={[styles.radio, restTimer.pipMode === m.key && styles.radioActive]} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.notifTitle}>{m.title}</Text>
+                <Text style={styles.notifSub}>{m.sub}</Text>
+              </View>
+            </Pressable>
+          ))}
         </>
       )}
 
@@ -199,6 +213,10 @@ const styles = StyleSheet.create({
   },
   notifTitle: { color: colors.white, fontSize: 13, fontWeight: '700' },
   notifSub: { color: colors.gray1, fontSize: 11, marginTop: 2 },
+  pipOption: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, marginTop: 8, borderRadius: 14, backgroundColor: colors.black2, borderWidth: 1, borderColor: colors.border },
+  pipOptionActive: { borderColor: colors.red },
+  radio: { width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: colors.gray2 },
+  radioActive: { borderColor: colors.red, backgroundColor: colors.red },
   diagBox: {
     backgroundColor: colors.black2, borderWidth: 1, borderColor: colors.border,
     borderRadius: 12, padding: 14,

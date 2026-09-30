@@ -6,19 +6,20 @@ import { formatMMSS } from '../utils/time';
 
 export default function RestTimerBanner({ onPress }) {
   const restTimer = useRestTimer();
-  if (!restTimer.resting) return null;
+  if (!restTimer.running) return null;
+  const label = restTimer.mode === 'work' ? (restTimer.paused ? 'En pausa' : 'En bici') : 'Descansando';
 
   return (
     <View style={styles.banner}>
       <Pressable style={styles.bannerMain} onPress={onPress}>
         <View style={styles.dot} />
         <View style={{ flex: 1 }}>
-          <Text style={styles.label}>Descansando · {restTimer.exerciseName}</Text>
+          <Text style={styles.label}>{label} · {restTimer.exerciseName}</Text>
           <Text style={styles.sub}>Tocá para volver</Text>
         </View>
         <Text style={styles.time}>{formatMMSS(restTimer.restLeft)}</Text>
       </Pressable>
-      {restTimer.pipSupported && !restTimer.pipActive && (
+      {restTimer.pipSupported && restTimer.pipMode === 'manual' && !restTimer.pipActive && (
         <Pressable style={styles.pipIconBtn} onPress={() => restTimer.enterPiP()}>
           <Text style={styles.pipIcon}>🗗</Text>
         </Pressable>

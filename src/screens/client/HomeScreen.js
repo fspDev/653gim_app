@@ -11,6 +11,7 @@ import { getExercisePref } from '../../services/exercisePrefs';
 import { PrimaryButton, SecondaryButton } from '../../components/UI';
 import { confirmAction } from '../../utils/platformAlert';
 import { formatMMSS } from '../../utils/time';
+import { buildWarmup, buildCooldown, isTimed, WARMUP_ID } from '../../services/timedBlocks';
 
 const WEEK_LABELS = { mon: 'LUN', tue: 'MAR', wed: 'MIÉ', thu: 'JUE', fri: 'VIE', sat: 'SÁB', sun: 'DOM' };
 const WEEK_ORDER = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
@@ -59,7 +60,16 @@ export default function HomeScreen({ navigation }) {
       return;
     }
 
-    if (existing) {
+    const existingDay = existing && planDays.find((d) => d.id === existing.dayId);
+    const untouched = existing && existing.exercises.every((e) => !e.sets?.length);
+    const missingWarmup = existing && !existing.exercises.some((e) => e.exerciseId === WARMUP_ID);
+    if (existing && existingDay && untouched && missingWarmup) {
+      // Sesión de hoy armada antes de que existieran calentamiento/elongación
+      // y todavía sin nada hecho: se rearma para que los incluya.
+      const fresh = buildFreshSession(existingDay, freshPrefs);
+      setSession(fresh);
+      await saveSession(user.uid, todayId(), fresh);
+    } else if (existing) {
       setSession(existing);
     } else {
       const first = planDays[0];
@@ -104,7 +114,14 @@ export default function HomeScreen({ navigation }) {
         sets: [],
       };
     });
-    return { dayId: day.id, date: todayId(), startedAt: Date.now(), exercises };
+    const warmup = buildWarmup(day, activePrefs);
+    const cooldown = buildCooldown(day, activePrefs);
+    return {
+      dayId: day.id,
+      date: todayId(),
+      startedAt: Date.now(),
+      exercises: [...(warmup ? [warmup] : []), ...exercises, ...(cooldown ? [cooldown] : [])],
+    };
   }
 
   async function selectDay(day) {
@@ -149,6 +166,8 @@ export default function HomeScreen({ navigation }) {
   const currentDay = days.find((d) => d.id === session?.dayId);
   const coreEx = session?.exercises.filter((e) => e.group === 'core') || [];
   const fuerzaEx = session?.exercises.filter((e) => e.group === 'fuerza') || [];
+  const warmupEx = session?.exercises.filter((e) => e.group === 'warmup') || [];
+  const cooldownEx = session?.exercises.filter((e) => e.group === 'cooldown') || [];
   const nextExercise = session?.exercises.find((e) => e.sets.length < e.targetSets);
 
   return (
@@ -244,8 +263,10 @@ export default function HomeScreen({ navigation }) {
             </View>
           ) : (
             <>
+              <ExerciseGroup title="Calentamiento" exercises={warmupEx} onPress={openExercise} />
               <ExerciseGroup title="Core" exercises={coreEx} onPress={openExercise} />
               <ExerciseGroup title="Fuerza" exercises={fuerzaEx} onPress={openExercise} />
+              <ExerciseGroup title="Final" exercises={cooldownEx} onPress={openExercise} />
             </>
           )}
 
@@ -277,8 +298,11 @@ function ExerciseGroup({ title, exercises, onPress }) {
             <View style={{ flex: 1 }}>
               <Text style={styles.exName}>{ex.name}</Text>
               <Text style={styles.exMeta}>
-                {ex.targetSets} series × {ex.reps} reps · descanso {formatMMSS(ex.restSeconds)}
-                {ex.sets.length > 0 ? ` · ${ex.sets.length}/${ex.targetSets} hechas` : ''}
+                {isTimed(ex)
+                  ? `${ex.subtitle} · ${formatMMSS(ex.durationSeconds)}`
+                  : `${ex.targetSets} series × ${ex.reps} reps · descanso ${formatMMSS(ex.restSeconds)}${
+                      ex.sets.length > 0 ? ` · ${ex.sets.length}/${ex.targetSets} hechas` : ''
+                    }`}
               </Text>
             </View>
             <View style={styles.exGo}>
