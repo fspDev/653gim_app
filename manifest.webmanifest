@@ -1,0 +1,17 @@
+{
+  "name": "653 Gym & Fitness",
+  "short_name": "653 Gym",
+  "description": "Registro de ejercicios y rutinas — 653 Gym & Fitness",
+  "start_url": "/653gim_app/",
+  "scope": "/653gim_app/",
+  "id": "/653gim_app/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0a0a0a",
+  "icons": [
+    { "src": "/653gim_app/logo653.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/653gim_app/logo653.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/653gim_app/logo653.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
