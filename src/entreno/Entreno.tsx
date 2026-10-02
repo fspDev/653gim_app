@@ -32,12 +32,13 @@ function EntrenoRun({ initial }: { initial: Workout }) {
   const { syncNow } = useAuth()
   const [w, rawDispatch] = useReducer(workoutReducer, initial)
   const pip = usePiP(w, rawDispatch)
-  // Los toques que arrancan un descanso o un bloque sirven de gesto para abrir la ventana flotante
-  // (ajuste "Al marcar una serie"): el navegador solo la abre dentro de un toque.
+  // Cualquier toque del entreno (HECHA, pausa o ±1 min de la bici, empezar el bloque…) sirve de gesto
+  // para abrir la ventana flotante con el ajuste "Al tocar": el navegador solo la abre dentro de un toque.
+  // Los ticks del reloj van por rawDispatch y no cuentan.
   const { onGesture } = pip
   const dispatch = useCallback(
     (a: WorkoutAction) => {
-      if (a.type === 'DONE' || a.type === 'BETWEEN_START') onGesture()
+      if (a.type !== 'TICK' && a.type !== 'SET_FEELING') onGesture()
       rawDispatch(a)
     },
     [onGesture],

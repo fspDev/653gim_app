@@ -5,7 +5,7 @@ import { fmtTime } from '../format'
 import { useDays } from '../rutina/useDays'
 import { updateSettings, useSettings, type Settings } from '../settings'
 import { askNotificationPermission, notificationPermission, showAlert } from '../notify'
-import { isPiPSupported } from '../pip/pipEngine'
+import { closePiP, isPiPOpen, isPiPSupported, lastPiPError, openPiP } from '../pip/pipEngine'
 import styles from './Perfil.module.css'
 
 const REST_STEP = 15
@@ -25,10 +25,10 @@ const THEMES: { value: Settings['temaDescanso']; label: string }[] = [
 ]
 
 const FLOTANTE: { value: Settings['flotante']; label: string; hint: string }[] = [
-  { value: 'salir', label: 'Al salir', hint: 'Aparece sola cuando cambiás de app y se va cuando volvés.' },
-  { value: 'serie', label: 'Al marcar', hint: 'Se abre al tocar HECHA. Usala si tu celular no la abre solo al salir.' },
-  { value: 'boton', label: 'Botón', hint: 'Un botón arriba del entreno la abre y la cierra.' },
-  { value: 'nunca', label: 'Nunca', hint: 'Sin ventana flotante.' },
+  { value: 'salir', label: 'Al salir', hint: 'Intenta aparecer sola cuando cambiás de app (no todos los celulares lo permiten).' },
+  { value: 'serie', label: 'Al tocar', hint: 'Se abre con tu primer toque del entreno: deslizar para empezar, HECHA o pausar la bici.' },
+  { value: 'boton', label: 'Botón', hint: 'Solo cuando la abrís vos.' },
+  { value: 'nunca', label: 'Nunca', hint: 'Sin ventana flotante ni botón.' },
 ]
 
 const PERMISO: Record<string, string> = {
@@ -41,6 +41,7 @@ const PERMISO: Record<string, string> = {
 export function Perfil() {
   const [permiso, setPermiso] = useState(notificationPermission)
   const [probado, setProbado] = useState<string | null>(null)
+  const [pipTest, setPipTest] = useState<string | null>(null)
   const s = useSettings()
   const navigate = useNavigate()
   const { status, profile, signOut } = useAuth()
@@ -105,11 +106,11 @@ export function Perfil() {
         ))}
       </div>
 
-      {isPiPSupported() && (
+      <div className={styles.section} style={{ marginTop: 24 }}>
+        VENTANA FLOTANTE
+      </div>
+      {isPiPSupported() ? (
         <>
-          <div className={styles.section} style={{ marginTop: 24 }}>
-            VENTANA FLOTANTE
-          </div>
           <div className={styles.segmented} role="radiogroup" aria-label="Ventana flotante">
             {FLOTANTE.map((t) => (
               <button key={t.value} className={styles.option} role="radio" aria-checked={s.flotante === t.value} onClick={() => updateSettings({ flotante: t.value })}>
@@ -118,9 +119,34 @@ export function Perfil() {
             ))}
           </div>
           <p className={styles.note}>
-            {FLOTANTE.find((t) => t.value === s.flotante)?.hint} Desde la ventanita: ⏭ marca HECHA o salta el descanso, ⏮ suma 15 s y ⏯ pausa la bici.
+            {FLOTANTE.find((t) => t.value === s.flotante)?.hint}
+            {s.flotante !== 'nunca' && ' Siempre la podés abrir con el botón 🗗 de arriba del entreno.'} Desde la ventanita: ⏭ marca HECHA o salta el descanso, ⏮ suma 15 s y ⏯ pausa la bici.
           </p>
+          <div className={styles.rows}>
+            <div className={styles.row}>
+              <div>
+                <div className={styles.label}>Probar la ventana flotante</div>
+                <div className={styles.hint}>{pipTest ?? 'Se abre con un cartel de prueba'}</div>
+              </div>
+              <button
+                className={styles.small}
+                onClick={async () => {
+                  if (isPiPOpen()) {
+                    closePiP()
+                    setPipTest('Cerrada.')
+                    return
+                  }
+                  const ok = await openPiP()
+                  setPipTest(ok ? '✓ Funcionó. Tocá de nuevo para cerrarla.' : `No se abrió: ${lastPiPError ?? 'motivo desconocido'}`)
+                }}
+              >
+                PROBAR
+              </button>
+            </div>
+          </div>
         </>
+      ) : (
+        <p className={styles.note}>Este navegador no permite ventanas flotantes. En Android usá Chrome actualizado.</p>
       )}
 
       <div className={styles.section} style={{ marginTop: 24 }}>

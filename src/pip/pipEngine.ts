@@ -108,14 +108,39 @@ function ensureElements() {
   })
 }
 
+const PLACEHOLDER: PipFrame = {
+  theme: 'dark',
+  kicker: '653',
+  big: '653',
+  unit: '',
+  title: 'GYM & FITNESS',
+  sub: '',
+  ring: null,
+  paused: false,
+  controls: { next: null, prev: null, playPause: null, legend: '' },
+}
+
 async function ensureStream() {
   ensureElements()
   if (!stream && canvas && video) {
     stream = canvas.captureStream(4)
     video.srcObject = stream
   }
+  // El stream solo manda un cuadro cuando el canvas se pinta: sin esto el video queda vacío y Chrome
+  // rechaza abrir la ventana ("metadata not loaded").
+  if (ctx) drawFrame(ctx, frame ?? PLACEHOLDER)
   if (video?.paused) await video.play()
+  if (video && video.readyState < 1) {
+    await new Promise<void>((resolve) => {
+      const done = () => resolve()
+      video!.addEventListener('loadedmetadata', done, { once: true })
+      setTimeout(done, 1000)
+    })
+  }
 }
+
+/** Último motivo por el que el navegador no abrió la ventana (para el diagnóstico del Perfil). */
+export let lastPiPError: string | null = null
 
 /** Dibuja el estado actual. Barato: se puede llamar en cada tick. */
 export function renderPiP(f: PipFrame) {
@@ -135,6 +160,7 @@ export function setPiPCommandHandler(handler: ((c: PipCommand) => void) | null) 
  */
 export async function armPiP(autoOpenOnLeave: boolean) {
   if (!isPiPSupported()) return
+  cancelPendingDisarm()
   autoOnLeave = autoOpenOnLeave
   try {
     await ensureStream()
@@ -143,7 +169,26 @@ export async function armPiP(autoOpenOnLeave: boolean) {
   }
 }
 
+let disarmTimer: ReturnType<typeof setTimeout> | null = null
+function cancelPendingDisarm() {
+  if (disarmTimer !== null) clearTimeout(disarmTimer)
+  disarmTimer = null
+}
+
+/**
+ * Apagado diferido: al desmontar la pantalla del entreno. Si enseguida se vuelve a armar (React en
+ * desarrollo monta dos veces; la pantalla se reemplaza por otra del entreno), no se cierra nada.
+ */
+export function disarmPiPSoon() {
+  cancelPendingDisarm()
+  disarmTimer = setTimeout(() => {
+    disarmTimer = null
+    disarmPiP()
+  }, 300)
+}
+
 export function disarmPiP() {
+  cancelPendingDisarm()
   autoOnLeave = false
   // Sin cuadro, el 'pause' que dispara video.pause() de abajo no ejecuta ningún comando.
   frame = null
@@ -165,15 +210,20 @@ export function disarmPiP() {
 
 /** Abre la ventana a mano. Tiene que llamarse dentro de un toque del usuario. */
 export async function openPiP(): Promise<boolean> {
-  if (!isPiPSupported()) return false
+  if (!isPiPSupported()) {
+    lastPiPError = 'Este navegador no permite ventanas flotantes.'
+    return false
+  }
   try {
     await ensureStream()
     if (!isPiPOpen()) {
       openedByLeave = false
       await video!.requestPictureInPicture()
     }
+    lastPiPError = null
     return true
-  } catch {
+  } catch (e) {
+    lastPiPError = e instanceof Error ? `${e.name}: ${e.message}` : String(e)
     return false
   }
 }

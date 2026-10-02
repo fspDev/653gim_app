@@ -8,6 +8,8 @@ import { streakWeeks } from '../stats'
 import { useLive } from '../useLive'
 import { clearActive, loadActive } from '../workout/persist'
 import { startWorkout } from '../workout/start'
+import { isPiPSupported, openPiP } from '../pip/pipEngine'
+import { getSettings } from '../settings'
 import styles from './Hoy.module.css'
 import { SinRutina } from './SinRutina'
 import { SlideToStart } from './SlideToStart'
@@ -56,6 +58,9 @@ function HoyDia({ days, active }: { days: Day[]; active: ReturnType<typeof loadA
   const greeting = `Buenas${first ? `, ${first}` : ''}. ${weekday.charAt(0).toUpperCase()}${weekday.slice(1)} ${today.getDate()}.`
 
   const start = async () => {
+    // "Deslizá para empezar" es el toque que abre la ventana flotante cuando el primer bloque es la bici
+    // (no tiene HECHA). Se pide antes de cualquier espera, mientras el gesto sigue vigente.
+    if (getSettings().flotante === 'serie' && isPiPSupported()) void openPiP()
     if (!active) await startWorkout(day)
     navigate('/entreno')
   }

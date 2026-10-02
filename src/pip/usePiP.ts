@@ -4,7 +4,7 @@ import { useSettings } from '../settings'
 import type { WorkoutAction } from '../workout/reducer'
 import type { Workout } from '../workout/types'
 import { frameOf, type PipCommand } from './frameModel'
-import { armPiP, closePiP, disarmPiP, isPiPOpen, isPiPSupported, openPiP, renderPiP, setPiPCommandHandler, subscribePiP } from './pipEngine'
+import { armPiP, closePiP, disarmPiP, disarmPiPSoon, isPiPOpen, isPiPSupported, openPiP, renderPiP, setPiPCommandHandler, subscribePiP } from './pipEngine'
 
 /** Instante en que termina lo que está corriendo y hay que avisar (descanso o bloque por tiempo). */
 function alarmOf(w: Workout): { at: number; key: string; title: string; body: string } | null {
@@ -100,7 +100,7 @@ export function usePiP(w: Workout, dispatch: Dispatch<WorkoutAction>) {
     void armPiP(flotante === 'salir')
   }, [active, flotante])
 
-  useEffect(() => () => disarmPiP(), [])
+  useEffect(() => () => disarmPiPSoon(), [])
 
   // Cada cambio del entreno se dibuja enseguida.
   useEffect(() => {
@@ -132,15 +132,17 @@ export function usePiP(w: Workout, dispatch: Dispatch<WorkoutAction>) {
     }
   }, [active, dispatch, flotante])
 
-  /** Con "al marcar serie": se abre dentro del toque de HECHA (el navegador exige un gesto). */
+  /** Con "Al tocar": se abre dentro de un toque del entreno (el navegador exige un gesto). */
   const onGesture = useCallback(() => {
-    if (flotante === 'serie' && supported && !isPiPOpen()) void openPiP()
-  }, [flotante, supported])
+    if (active && flotante === 'serie' && supported && !isPiPOpen()) void openPiP()
+  }, [active, flotante, supported])
 
   const toggle = useCallback(() => {
     if (isPiPOpen()) closePiP()
     else void openPiP()
   }, [])
 
-  return { supported: supported && flotante !== 'nunca', open, manual: flotante === 'boton', onGesture, toggle }
+  // El botón 🗗 está siempre (salvo "Nunca"): es la forma que funciona en todos los celulares.
+  // Lo automático (al salir o al tocar) es un extra que depende del navegador.
+  return { supported: supported && flotante !== 'nunca', open, manual: true, onGesture, toggle }
 }
