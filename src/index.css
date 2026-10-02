@@ -1,0 +1,60 @@
+:root {
+  --bg: #f4f1ea;
+  --ink: #141414;
+  /* Acento de la marca 653: el rojo de siempre. Va con texto blanco encima. */
+  --accent: #e3202f;
+  --accent-pressed: #c41824;
+  --on-accent: #ffffff;
+  --muted: #6b665d;
+  --muted-2: #9a948a;
+  --fill: #e6e1d6;
+  --track: #dad4c8;
+  --track-ring: #e3ddd1;
+  --line: #e2ddd2;
+
+  --dark-bg: #141414;
+  --dark-text: #f4f1ea;
+  --dark-muted: #a39e93;
+  --dark-fill: #2b2a27;
+  --dark-sheet: #22211e;
+
+  --font-display: Anton, sans-serif;
+  --font-label: 'Barlow Condensed', sans-serif;
+  --font-body: Inter, system-ui, sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: #e9e5dc; /* en escritorio se ve alrededor de la columna de 480 px */
+  color: var(--ink);
+  font-family: var(--font-body);
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+button:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}

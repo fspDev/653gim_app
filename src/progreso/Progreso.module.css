@@ -1,0 +1,157 @@
+.page {
+  padding: 24px 24px 16px;
+}
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 52px;
+  line-height: 1;
+}
+
+.streak {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.streakNumber {
+  font-family: var(--font-display);
+  font-size: 76px;
+  line-height: 0.9;
+}
+.streakLabel {
+  font-family: var(--font-label);
+  font-weight: 800;
+  font-size: 22px;
+  line-height: 1.05;
+}
+.streakHint {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.sectionHead {
+  margin-top: 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.section {
+  font-family: var(--font-label);
+  font-weight: 800;
+  font-size: 17px;
+  letter-spacing: 0.08em;
+  text-align: left;
+}
+.swap {
+  color: var(--muted);
+}
+.small {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.calendar {
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px 6px;
+}
+.weekday {
+  height: 18px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.cell {
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.day {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-label);
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--muted-2);
+}
+.day[data-state='trained'] {
+  background: var(--ink);
+  color: var(--bg);
+}
+.day[data-state='today'] {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.chart {
+  position: relative;
+  margin-top: 6px;
+  height: 104px;
+}
+.chartSvg {
+  position: absolute;
+  inset: 0;
+}
+.lastDot {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 3px solid var(--ink);
+  box-sizing: border-box;
+}
+.chartLabel {
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.chartNow {
+  font-family: var(--font-display);
+  font-size: 22px;
+  color: var(--ink);
+}
+
+.prs {
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.pr {
+  background: var(--fill);
+  border-radius: 16px;
+  padding: 10px 14px;
+}
+.pr[data-recent='true'] {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.prName {
+  font-size: 12px;
+  font-weight: 600;
+}
+.prValue {
+  font-family: var(--font-display);
+  font-size: 26px;
+  line-height: 1.1;
+}
+
+.empty {
+  margin: 24px 0 0;
+  font-size: 16px;
+  line-height: 1.45;
+  color: var(--muted);
+}

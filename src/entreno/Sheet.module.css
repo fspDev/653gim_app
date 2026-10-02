@@ -1,0 +1,56 @@
+.scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(20, 20, 20, 0.55);
+  animation: fade 200ms ease both;
+}
+
+.sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 24px max(28px, env(safe-area-inset-bottom));
+  border-radius: 28px 28px 0 0;
+  background: var(--bg);
+  color: var(--ink);
+  animation: rise 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  /* En pantallas muy bajas la hoja no se sale: scrollea adentro. */
+  max-height: calc(100% - 12px);
+  overflow-y: auto;
+}
+
+.handle {
+  align-self: center;
+  width: 44px;
+  height: 5px;
+  border-radius: 3px;
+  background: #cfc8ba;
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes rise {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet {
+    animation: fade 150ms ease both;
+  }
+}
+
+/* Las hojas son claras aunque la pantalla de atrás sea la oscura. */
+.sheet {
+  --bg: #f4f1ea;
+  --ink: #141414;
+  --muted: #6b665d;
+  --fill: #e6e1d6;
+}

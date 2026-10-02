@@ -1,0 +1,481 @@
+/*
+ * Posiciones verticales. El diseño es de 844 px de alto (en 390×844 da exactamente sus medidas);
+ * en pantallas más bajas todo se escala con --k (alto / 844, lo calcula Shell) y cada pieza se apoya
+ * en la anterior con max(), así nada se pisa aunque los botones (que no se achican) ocupen lo mismo.
+ * 75 px = barra superior + línea de bloques, que no cambian.
+ */
+.stage {
+  --title-top: calc(75px + 29px * var(--k));
+  /* Fase serie */
+  --weight-size: min(calc(172px * var(--k)), 44cqw);
+  --weight-top: max(calc(75px + 111px * var(--k)), calc(var(--title-top) + 80px));
+  /* La coma de "42,5" baja por debajo de la línea: se mide con el tamaño completo de la fuente. */
+  --adjust-top: max(calc(75px + 283px * var(--k)), calc(var(--weight-top) + var(--weight-size) + 12px));
+  /* chip 40 + 12 + fila objetivo 52 + 10 de aire */
+  --sheet-serie: max(170px, calc(var(--h) - var(--adjust-top) - 114px));
+  /* Fase descanso: el anillo usa lo que sobra después de reservar controles y el bloque "Después" */
+  --ring-top: max(calc(75px + 111px * var(--k)), calc(var(--title-top) + 74px));
+  --ring: clamp(140px, min(calc(300px * var(--k)), calc(100cqw - 90px), calc(var(--h) - var(--ring-top) - 34px * var(--k) - 60px - 24px - 166px)), 300px);
+  --controls-top: calc(var(--ring-top) + var(--ring) + 34px * var(--k));
+  --sheet-rest: max(166px, calc(var(--h) - var(--controls-top) - 60px - 40px * var(--k)));
+}
+
+/* ───── Cabeceras ───── */
+.layer {
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  transition: opacity 240ms ease, visibility 0s linear 0s;
+}
+.title {
+  font-family: var(--font-label);
+  font-weight: 800;
+  font-size: min(38px, 9.7cqw);
+  line-height: 1;
+  white-space: nowrap;
+}
+.serieHead {
+  top: var(--title-top);
+}
+.serieRow {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.serieLabel {
+  font-family: var(--font-label);
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: 0.06em;
+}
+.dots {
+  display: flex;
+  gap: 5px;
+}
+.dot {
+  width: 22px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--track);
+  transition: background-color 300ms ease, opacity 300ms ease;
+}
+.dot[data-state='done'] {
+  background: var(--ink);
+}
+.dot[data-state='current'] {
+  background: var(--ink);
+  opacity: 0.45;
+}
+.restHead {
+  top: var(--title-top);
+}
+.restEyebrow {
+  font-family: var(--font-label);
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: 0.04em;
+  line-height: 24px;
+  color: var(--muted);
+  margin-bottom: 0;
+}
+.restHead .title {
+  margin-top: 0;
+}
+
+/* ───── Peso y ajustes (fase serie) ───── */
+.weight {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: var(--weight-top);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 6px;
+  transition: opacity 240ms ease, transform 320ms var(--ease), visibility 0s linear 0s;
+}
+.weightNumber {
+  font-family: var(--font-display);
+  font-size: var(--weight-size);
+  line-height: 0.92;
+  letter-spacing: -0.02em;
+}
+.weightUnit {
+  margin-top: calc(14px * var(--k));
+  font-family: var(--font-label);
+  font-weight: 800;
+  font-size: 30px;
+}
+
+.adjust {
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  top: var(--adjust-top);
+  display: flex;
+  flex-direction: column;
+  transition: opacity 200ms ease, transform 320ms var(--ease), visibility 0s linear 0s;
+}
+.chip {
+  align-self: center;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 6px 14px 6px 6px;
+  border-radius: 999px;
+  background: var(--fill);
+  font-size: 14px;
+}
+.chipBadge {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-label);
+  font-weight: 800;
+  font-size: 13px;
+}
+.objectiveRow {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.objectiveLabel {
+  font-family: var(--font-label);
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+.objectiveValue {
+  font-family: var(--font-label);
+  font-weight: 800;
+  font-size: 30px;
+  line-height: 1;
+}
+.stepper {
+  display: flex;
+  gap: 10px;
+}
+.round {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--fill);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ───── Anillo y controles (fase descanso) ───── */
+.ring {
+  position: absolute;
+  left: 50%;
+  margin-left: calc(var(--ring) / -2);
+  top: var(--ring-top);
+  width: var(--ring);
+  height: var(--ring);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transform: scale(0.6);
+  transition: opacity 260ms ease, transform 420ms var(--ease), visibility 0s linear 420ms;
+}
+.ringSvg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.disc {
+  fill: var(--accent);
+  opacity: 0;
+  transition: opacity 420ms ease;
+}
+.arc {
+  transition: stroke-dashoffset 1s linear;
+}
+.ringText {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.ringTime {
+  font-family: var(--font-display);
+  font-size: calc(var(--ring) * 0.393);
+  line-height: 0.9;
+  font-variant-numeric: tabular-nums;
+}
+.ringOf {
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.controls {
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  top: var(--controls-top);
+  height: 60px;
+  display: grid;
+  grid-template-columns: 3fr 4fr 3fr;
+  gap: 10px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(60px);
+  transition: opacity 260ms ease, transform 360ms var(--ease), visibility 0s linear 360ms;
+}
+.pill {
+  height: 60px;
+  border-radius: 30px;
+  background: var(--fill);
+  font-family: var(--font-label);
+  font-weight: 800;
+  font-size: 22px;
+}
+.pillSkip {
+  background: var(--dark-bg);
+  color: var(--dark-text);
+  letter-spacing: 0.04em;
+}
+
+/* ───── Bloque inferior ───── */
+.sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  /* En 844 de alto arranca a 470 px, como el diseño; absorbe el alto que sobre. */
+  height: var(--sheet-serie);
+  overflow: hidden;
+  border-radius: 32px 32px 0 0;
+  background: var(--accent);
+  color: var(--on-accent);
+  transition: height 320ms var(--ease), background-color 300ms ease, color 300ms ease;
+}
+.done {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(6px * var(--k));
+  transition: opacity 200ms ease, background-color 80ms ease, visibility 0s linear 0s;
+}
+.done:active {
+  background: var(--accent-pressed);
+}
+.doneIcon {
+  width: calc(56px * var(--k));
+  height: calc(56px * var(--k));
+}
+.doneWord {
+  font-family: var(--font-display);
+  font-size: min(calc(112px * var(--k)), 29cqw);
+  line-height: 0.9;
+  letter-spacing: 0.01em;
+}
+.doneHint {
+  font-size: 15px;
+  font-weight: 500;
+  opacity: 0.75;
+}
+
+.after {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  padding: calc(24px * var(--k)) 24px 0;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 240ms ease 120ms, visibility 0s linear 360ms;
+}
+.afterLabel {
+  font-family: var(--font-label);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.12em;
+  color: var(--dark-muted);
+}
+.afterTitle {
+  margin-top: 2px;
+  font-family: var(--font-label);
+  font-weight: 800;
+  font-size: min(36px, 9.2cqw);
+  line-height: 1.05;
+  white-space: nowrap;
+}
+.afterDetail {
+  margin-top: 2px;
+  font-size: 15px;
+  color: #d8d3c8;
+}
+.afterLinks {
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.link {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--accent);
+}
+.undo {
+  min-height: 44px;
+  padding: 0 4px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--dark-muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ───── Fase descanso ───── */
+.stage[data-phase='descanso'] .serieHead,
+.stage[data-phase='descanso'] .adjust {
+  opacity: 0;
+  visibility: hidden;
+  transition-delay: 0s, 240ms;
+}
+.stage[data-phase='descanso'] .adjust {
+  transform: translateY(24px);
+}
+.stage[data-phase='descanso'] .weight {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-40px) scale(0.5);
+  transition-delay: 0s, 0s, 320ms;
+}
+.stage[data-phase='descanso'] .ring {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition-delay: 0s, 0s, 0s;
+}
+.stage[data-fresh='true'] .disc {
+  opacity: 0.55;
+}
+.stage[data-phase='descanso'] .controls {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition: opacity 260ms ease 120ms, transform 360ms var(--ease) 120ms, visibility 0s linear 0s;
+}
+.stage[data-phase='descanso'] .sheet {
+  height: var(--sheet-rest);
+  background: var(--dark-bg);
+  color: var(--dark-text);
+  transition: height 420ms var(--ease), background-color 300ms ease, color 300ms ease;
+}
+.stage[data-phase='descanso'] .done {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition-delay: 0s, 0s, 200ms;
+}
+.stage[data-phase='descanso'] .after {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 240ms ease 120ms, visibility 0s linear 0s;
+}
+.stage:not([data-phase='descanso']) .restHead {
+  opacity: 0;
+  visibility: hidden;
+  transition-delay: 0s, 240ms;
+}
+
+/* Últimos 3 s: "Después" pasa de negro al rojo */
+.stage[data-warn='true'] .sheet {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.stage[data-warn='true'] .afterLabel,
+.stage[data-warn='true'] .afterDetail,
+.stage[data-warn='true'] .link,
+.stage[data-warn='true'] .undo {
+  color: var(--on-accent);
+}
+.stage[data-warn='true'] .afterDetail {
+  opacity: 0.8;
+}
+
+/* ───── Movimiento reducido: cortar a fundidos simples ───── */
+@media (prefers-reduced-motion: reduce) {
+  .stage *,
+  .stage *::before,
+  .stage *::after {
+    transition-property: opacity, background-color, color, visibility !important;
+    transition-duration: 150ms !important;
+    transition-delay: 0s !important;
+  }
+  .stage .arc {
+    transition: stroke-dashoffset 1s linear !important;
+  }
+  .stage .ring,
+  .stage .controls,
+  .stage .adjust,
+  .stage .weight,
+  .stage[data-phase='descanso'] .ring,
+  .stage[data-phase='descanso'] .controls,
+  .stage[data-phase='descanso'] .adjust,
+  .stage[data-phase='descanso'] .weight {
+    transform: none;
+  }
+}
+
+.track {
+  stroke: var(--track-ring);
+}
+.arc {
+  stroke: var(--ink);
+}
+
+/* ───── Descanso oscuro (DescansoOscuro.dc.html) ───── */
+.stage {
+  transition: background-color 300ms ease, color 300ms ease;
+  --arc-color: var(--ink);
+  --skip-bg: var(--dark-bg);
+  --skip-fg: var(--dark-text);
+}
+.stage[data-theme='oscuro'] {
+  --bg: #141414;
+  --ink: #f4f1ea;
+  --muted: #a39e93;
+  --fill: #2b2a27;
+  --track: #33312d;
+  --track-ring: #2b2a27;
+  --arc-color: var(--accent);
+  --skip-bg: var(--accent);
+  --skip-fg: var(--on-accent);
+}
+.stage[data-theme='oscuro'] .sheet {
+  background: var(--dark-sheet);
+}
+.stage[data-theme='oscuro'][data-warn='true'] .sheet {
+  background: var(--accent);
+}
+.arc {
+  stroke: var(--arc-color);
+}
+.pillSkip {
+  background: var(--skip-bg);
+  color: var(--skip-fg);
+}

@@ -1,0 +1,80 @@
+.flow {
+  padding: 20px 24px 0;
+}
+.absolute {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  padding: 20px 24px 0;
+}
+
+.topbar {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.exit {
+  width: 44px;
+  height: 44px;
+  margin-left: -10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.blockCount {
+  font-family: var(--font-label);
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: 0.08em;
+}
+.right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.pip {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  color: var(--muted);
+}
+.pipOn {
+  color: var(--accent);
+}
+.elapsed {
+  min-width: 44px;
+  text-align: right;
+  font-family: var(--font-label);
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.segments {
+  margin-top: 6px;
+  display: flex;
+  gap: 4px;
+}
+.segment {
+  height: 5px;
+  border-radius: 3px;
+  background: var(--track);
+  overflow: hidden;
+}
+.fill {
+  height: 100%;
+  background: var(--ink);
+  transition: width 420ms var(--ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fill {
+    transition-duration: 0s;
+  }
+}

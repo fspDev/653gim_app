@@ -1,0 +1,51 @@
+.track {
+  position: relative;
+  height: 80px;
+  border-radius: 40px;
+  background: var(--dark-bg);
+  color: var(--dark-text);
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.knob {
+  position: relative;
+  z-index: 1;
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  touch-action: none;
+}
+.knob:active {
+  cursor: grabbing;
+}
+.label {
+  flex-grow: 1;
+  text-align: center;
+  font-family: var(--font-label);
+  font-weight: 800;
+  font-size: min(21px, 5.4vw);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.chevrons {
+  width: 40px;
+  display: flex;
+  justify-content: center;
+  opacity: 0.35;
+}
+@media (prefers-reduced-motion: reduce) {
+  .knob {
+    transition: none !important;
+  }
+}

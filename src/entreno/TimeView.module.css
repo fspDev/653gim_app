@@ -1,0 +1,122 @@
+/* Columna: barra superior, contenido y el siguiente bloque abajo (en el flujo, nunca encima de los controles). */
+.col {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.body {
+  flex: 1;
+  min-height: 0;
+  padding: calc(44px * var(--k)) 24px 16px;
+}
+.name {
+  font-family: var(--font-label);
+  font-weight: 800;
+  font-size: min(44px, 11.3cqw);
+  line-height: 1;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+.subtitle {
+  margin-top: 4px;
+  font-size: 18px;
+  color: var(--muted);
+}
+.time {
+  margin-top: calc(36px * var(--k));
+  font-family: var(--font-display);
+  font-size: min(calc(158px * var(--k)), 40cqw);
+  line-height: 0.9;
+  letter-spacing: -0.01em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.bar {
+  margin-top: calc(20px * var(--k));
+  height: 8px;
+  border-radius: 4px;
+  background: var(--track);
+  overflow: hidden;
+}
+.barFill {
+  height: 100%;
+  background: var(--ink);
+  transition: width 1s linear;
+}
+.barMeta {
+  margin-top: 10px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.controls {
+  margin-top: calc(40px * var(--k));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.pill {
+  width: 96px;
+  height: 64px;
+  border-radius: 32px;
+  background: var(--fill);
+  font-family: var(--font-label);
+  font-weight: 800;
+  font-size: 22px;
+}
+.main {
+  width: max(80px, calc(104px * var(--k)));
+  height: max(80px, calc(104px * var(--k)));
+  border-radius: 50%;
+  background: var(--dark-bg);
+  color: var(--dark-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.next {
+  flex-shrink: 0;
+  padding: calc(22px * var(--k)) 24px max(24px, env(safe-area-inset-bottom, 0px));
+  border-radius: 28px 28px 0 0;
+  background: var(--dark-bg);
+  color: var(--dark-text);
+}
+.nextTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.nextLabel {
+  font-family: var(--font-label);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.1em;
+  color: var(--dark-muted);
+}
+.nextIn {
+  font-size: 13px;
+  color: var(--dark-muted);
+  font-variant-numeric: tabular-nums;
+}
+.nextName {
+  margin-top: 6px;
+  font-family: var(--font-label);
+  font-weight: 800;
+  font-size: min(32px, 8.2cqw);
+  line-height: 1.05;
+  white-space: nowrap;
+}
+.nextDetail {
+  margin-top: 4px;
+  font-size: 15px;
+  color: #d8d3c8;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .barFill {
+    transition: none;
+  }
+}

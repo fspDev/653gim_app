@@ -1,0 +1,107 @@
+.head {
+  margin-top: 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.what {
+  font-family: var(--font-label);
+  font-weight: 800;
+  font-size: 17px;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+.kg {
+  font-family: var(--font-label);
+  font-weight: 800;
+  font-size: 20px;
+}
+
+.question {
+  margin-top: 18px;
+  font-size: 20px;
+  font-weight: 700;
+}
+.repsRow {
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.round {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  background: var(--fill);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.repsBox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.reps {
+  font-family: var(--font-display);
+  font-size: 124px;
+  line-height: 0.95;
+}
+.target {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.faces {
+  margin-top: 12px;
+  display: flex;
+  justify-content: space-between;
+}
+.face {
+  width: 62px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.faceDisc {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: var(--fill);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.face[data-on='true'] .faceDisc {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.faceLabel {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+}
+.face[data-on='true'] .faceLabel {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.save {
+  margin-top: 26px;
+  height: 64px;
+  border-radius: 32px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-family: var(--font-label);
+  font-weight: 800;
+  font-size: 24px;
+  letter-spacing: 0.06em;
+}
+.plan {
+  margin-top: 6px;
+  height: 44px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--muted);
+}

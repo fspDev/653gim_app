@@ -1,0 +1,164 @@
+.stage {
+  background: var(--bg);
+}
+
+.top {
+  background: var(--accent);
+  color: var(--on-accent);
+  flex-shrink: 0;
+  padding: 20px 24px calc(28px * var(--k));
+  border-radius: 0 0 32px 32px;
+}
+.topbar {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.exit {
+  width: 44px;
+  height: 44px;
+  margin-left: -10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.spacer {
+  width: 34px;
+}
+.count {
+  font-family: var(--font-label);
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: 0.08em;
+}
+.check {
+  display: block;
+  width: calc(64px * var(--k));
+  height: calc(64px * var(--k));
+  margin-top: calc(20px * var(--k));
+}
+.title {
+  margin-top: 6px;
+  font-family: var(--font-display);
+  line-height: 0.92;
+}
+.stats {
+  margin-top: calc(18px * var(--k));
+  display: flex;
+  gap: 28px;
+}
+.statValue {
+  font-family: var(--font-display);
+  font-size: 36px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.statLabel {
+  font-size: 14px;
+}
+
+.col {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.bottom {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: calc(28px * var(--k)) 24px max(calc(32px * var(--k)), env(safe-area-inset-bottom, 0px));
+}
+.nextLabel {
+  font-family: var(--font-label);
+  font-weight: 800;
+  font-size: 16px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+.nextName {
+  margin-top: 4px;
+  font-family: var(--font-label);
+  font-weight: 800;
+  font-size: min(40px, 10.3cqw);
+  line-height: 1;
+  white-space: nowrap;
+}
+.nextDetail {
+  margin-top: 4px;
+  font-size: 16px;
+  color: var(--muted);
+}
+.grow {
+  flex-grow: 1;
+}
+
+.countdown {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.ring {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  flex-shrink: 0;
+}
+.ringSvg {
+  position: absolute;
+  inset: 0;
+}
+.track {
+  stroke: var(--track-ring);
+}
+.arc {
+  stroke: var(--ink);
+  transition: stroke-dasharray 250ms linear;
+}
+.ringNumber {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 38px;
+}
+.countText {
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.actions {
+  margin-top: calc(22px * var(--k));
+  display: flex;
+  gap: 10px;
+}
+.start {
+  flex-grow: 1;
+  height: 64px;
+  border-radius: 32px;
+  background: var(--dark-bg);
+  color: var(--dark-text);
+  font-family: var(--font-label);
+  font-weight: 800;
+  font-size: 22px;
+  letter-spacing: 0.06em;
+}
+.wait {
+  width: 120px;
+  height: 64px;
+  border-radius: 32px;
+  background: var(--fill);
+  font-family: var(--font-label);
+  font-weight: 800;
+  font-size: 22px;
+  letter-spacing: 0.04em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arc {
+    transition: none;
+  }
+}

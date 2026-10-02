@@ -1,0 +1,124 @@
+.card {
+  box-sizing: border-box;
+  background: #f4f1ea;
+  color: #141414;
+  font-family: Inter, system-ui, sans-serif;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.top {
+  padding: 110px 96px 0;
+  display: flex;
+  flex-direction: column;
+}
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+.logo {
+  font-family: Anton, sans-serif;
+  font-size: 200px;
+  line-height: 0.85;
+}
+.gym {
+  margin-top: 14px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 800;
+  font-size: 40px;
+  letter-spacing: 0.18em;
+}
+.date {
+  text-align: right;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 44px;
+  line-height: 1.1;
+  color: #6b665d;
+}
+.day {
+  margin-top: 120px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 800;
+  font-size: 64px;
+  letter-spacing: 0.08em;
+}
+.done {
+  font-family: Anton, sans-serif;
+  font-size: 260px;
+  line-height: 0.88;
+}
+.stats {
+  margin-top: 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.stat {
+  display: flex;
+  align-items: baseline;
+  gap: 24px;
+}
+.num {
+  font-family: Anton, sans-serif;
+  font-size: 250px;
+  line-height: 0.9;
+}
+.unit {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 800;
+  font-size: 72px;
+}
+.grow {
+  flex-grow: 1;
+}
+.bottom {
+  background: #c8ff2e;
+  border-radius: 64px 64px 0 0;
+  padding: 72px 96px 90px;
+}
+.recordsTitle {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 800;
+  font-size: 48px;
+  letter-spacing: 0.1em;
+}
+.records {
+  margin-top: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.record {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 24px;
+  border-bottom: 3px solid #141414;
+  padding-bottom: 14px;
+}
+.record[data-last='true'] {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+.recordName {
+  font-size: 44px;
+  font-weight: 600;
+  min-width: 0;
+}
+.recordValue {
+  font-family: Anton, sans-serif;
+  font-size: 96px;
+  line-height: 1;
+  white-space: nowrap;
+}
+.footer {
+  margin-top: 56px;
+  display: flex;
+  justify-content: space-between;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 800;
+  font-size: 36px;
+  letter-spacing: 0.08em;
+}

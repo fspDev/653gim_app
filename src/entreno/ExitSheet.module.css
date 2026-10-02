@@ -1,0 +1,41 @@
+.title {
+  margin-top: 22px;
+  font-family: var(--font-display);
+  font-size: 56px;
+  line-height: 0.95;
+}
+
+.text {
+  margin: 10px 0 0;
+  font-size: 17px;
+  line-height: 1.45;
+}
+
+.keep,
+.save {
+  height: 64px;
+  border-radius: 32px;
+  font-family: var(--font-label);
+  font-weight: 800;
+  font-size: 22px;
+  letter-spacing: 0.06em;
+}
+.keep {
+  margin-top: 26px;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.save {
+  margin-top: 10px;
+  background: var(--dark-bg);
+  color: var(--dark-text);
+}
+
+.discard {
+  margin-top: 8px;
+  height: 48px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--muted);
+  text-decoration: underline;
+}

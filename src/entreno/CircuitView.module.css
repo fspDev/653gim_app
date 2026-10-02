@@ -1,0 +1,137 @@
+.body {
+  position: absolute;
+  top: 75px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  padding: clamp(10px, 2.8dvh, 24px) 24px 24px;
+}
+
+.meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-family: var(--font-label);
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: 0.06em;
+}
+.block {
+  color: var(--muted);
+}
+.name {
+  margin-top: 4px;
+  font-family: var(--font-label);
+  font-weight: 800;
+  font-size: min(40px, 10.3cqw);
+  line-height: 1;
+  white-space: nowrap;
+}
+.time {
+  margin-top: 10px;
+  font-family: var(--font-display);
+  font-size: min(150px, 17.8dvh, 38cqw);
+  line-height: 0.9;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.repsUnit {
+  margin-left: 10px;
+  font-family: var(--font-label);
+  font-weight: 800;
+  font-size: 0.2em;
+  letter-spacing: 0.06em;
+}
+.bar {
+  margin-top: 14px;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--track);
+  overflow: hidden;
+}
+.barFill {
+  height: 100%;
+  background: var(--ink);
+  transition: width 1s linear;
+}
+
+.steps {
+  list-style: none;
+  margin: clamp(10px, 2.8dvh, 24px) 0 0;
+  padding: 0;
+}
+.step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 46px;
+  border-bottom: 1px solid var(--line);
+  opacity: 0.6;
+}
+.step[data-state='now'] {
+  opacity: 1;
+}
+.dot {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--track);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.step[data-state='now'] .dot,
+.step[data-state='done'] .dot {
+  background: var(--ink);
+  color: var(--bg);
+}
+.stepName {
+  flex-grow: 1;
+  font-size: 16px;
+  font-weight: 500;
+}
+.step[data-state='now'] .stepName {
+  font-weight: 700;
+}
+.stepDur {
+  font-family: var(--font-label);
+  font-weight: 800;
+  font-size: 20px;
+}
+
+.controls {
+  margin-top: auto;
+  padding-top: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+}
+.side {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--fill);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.main {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: var(--dark-bg);
+  color: var(--dark-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .barFill {
+    transition: none;
+  }
+}
