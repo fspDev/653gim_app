@@ -1,0 +1,1 @@
+(function(){let e=null;self.onmessage=t=>{t.data===`start`&&e===null&&(e=setInterval(()=>self.postMessage(Date.now()),1e3)),t.data===`stop`&&e!==null&&(clearInterval(e),e=null)}})();
