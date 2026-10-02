@@ -1,7 +1,7 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Permite que un usuario lea y escriba únicamente sus propios datos (SomaApp)
+    // SomaApp (comparte el proyecto): cada usuario lee y escribe solo lo suyo.
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
@@ -14,26 +14,31 @@ service cloud.firestore {
     }
     function isOwner(uid) { return isSignedIn() && request.auth.uid == uid; }
 
-    match /gymUsers/{uid} {
-      allow read: if isOwner(uid) || isAdmin();
-      allow create: if isOwner(uid) || isAdmin();
-      allow update: if isOwner(uid) || isAdmin();
-      allow delete: if isAdmin();
+    // Lo único de su ficha que el socio puede cambiar. Rol, cuota, DNI, nombre, teléfono
+    // y rutina los maneja el profe: si no, un socio podía hacerse admin.
+    function onlySocioFields() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(['exercisePrefs', 'weeklyDays', 'notifPrefs', 'sessionTime']);
     }
 
+    match /gymUsers/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || (isOwner(uid) && onlySocioFields());
+    }
+
+    // La rutina la arma el profe; el socio solo la lee.
     match /gymPlans/{uid}/days/{dayId} {
       allow read: if isOwner(uid) || isAdmin();
-      allow write: if isOwner(uid) || isAdmin();
+      allow write: if isAdmin();
     }
 
     match /gymSessions/{uid}/logs/{logId} {
-      allow read: if isOwner(uid) || isAdmin();
-      allow write: if isOwner(uid) || isAdmin();
+      allow read, write: if isOwner(uid) || isAdmin();
     }
 
     match /gymExerciseLibrary/{exId} {
-      allow read: if isAdmin();
-      allow write: if isAdmin();
+      allow read, write: if isAdmin();
     }
   }
 }
