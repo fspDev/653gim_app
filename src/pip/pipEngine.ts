@@ -1,4 +1,4 @@
-import { drawFrame, PIP_SIZE } from './drawFrame'
+import { canvasSizeFor, drawFrame, START_RATIO } from './drawFrame'
 import type { PipCommand, PipFrame } from './frameModel'
 
 /**
@@ -63,8 +63,10 @@ function setActionHandlers() {
 function ensureElements() {
   if (canvas) return
   canvas = document.createElement('canvas')
-  canvas.width = PIP_SIZE
-  canvas.height = PIP_SIZE
+  // Arranca en 5:4, la proporción con la que Android abrió la ventana en las pruebas; se ajusta a la real al abrirse.
+  const start = canvasSizeFor(START_RATIO)
+  canvas.width = start.w
+  canvas.height = start.h
   ctx = canvas.getContext('2d')
 
   video = document.createElement('video')
@@ -73,11 +75,15 @@ function ensureElements() {
   video.setAttribute('playsinline', '')
   // Safari: pasa solo a flotante al salir de la app si el video está andando.
   video.setAttribute('autopictureinpicture', '')
-  // Tiene que estar en el DOM (no display:none) para poder pedir PiP; queda fuera de la pantalla.
-  Object.assign(video.style, { position: 'fixed', left: '-9999px', top: '0', width: '2px', height: '2px' })
+  // Tiene que estar en el DOM (no display:none) para poder pedir PiP. Con su tamaño real (no 2×2): Android
+  // toma de ahí la proporción de la ventana y, si no coincide con el video, lo estira.
+  Object.assign(video.style, { position: 'fixed', left: '-9999px', top: '0', width: `${start.w}px`, height: `${start.h}px`, pointerEvents: 'none' })
   document.body.appendChild(video)
 
-  video.addEventListener('enterpictureinpicture', emit)
+  video.addEventListener('enterpictureinpicture', (e) => {
+    watchWindow((e as PictureInPictureEvent).pictureInPictureWindow)
+    emit()
+  })
   video.addEventListener('leavepictureinpicture', () => {
     openedByLeave = false
     emit()
@@ -118,6 +124,32 @@ const PLACEHOLDER: PipFrame = {
   ring: null,
   paused: false,
   controls: { next: null, prev: null, playPause: null, legend: '' },
+}
+
+let adaptations = 0
+let watched: PictureInPictureWindow | null = null
+
+/** Redimensiona el lienzo a la proporción de la ventana flotante (si no, el navegador estira el dibujo). */
+function adaptTo(win: PictureInPictureWindow | null | undefined) {
+  if (!win || !canvas || !ctx || !win.width || !win.height) return
+  const want = canvasSizeFor(win.width / win.height)
+  const ratioNow = canvas.width / canvas.height
+  const ratioWant = want.w / want.h
+  // Con diferencias chicas no se toca (evita que la ventana y el lienzo se persigan).
+  if (Math.abs(ratioNow - ratioWant) / ratioWant < 0.03 || adaptations >= 6) return
+  adaptations++
+  canvas.width = want.w
+  canvas.height = want.h
+  drawFrame(ctx, frame ?? PLACEHOLDER)
+}
+
+function watchWindow(win: PictureInPictureWindow | undefined) {
+  if (!win) return
+  adaptations = 0
+  adaptTo(win)
+  if (watched === win) return
+  watched = win
+  win.addEventListener('resize', () => adaptTo(win))
 }
 
 async function ensureStream() {
@@ -218,7 +250,7 @@ export async function openPiP(): Promise<boolean> {
     await ensureStream()
     if (!isPiPOpen()) {
       openedByLeave = false
-      await video!.requestPictureInPicture()
+      watchWindow(await video!.requestPictureInPicture())
     }
     lastPiPError = null
     return true

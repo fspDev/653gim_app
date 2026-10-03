@@ -39,10 +39,11 @@ export function Header({ w, now, onExit, absolute }: Props) {
               aria-pressed={pip.open}
               onClick={pip.toggle}
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinejoin="round" aria-hidden="true">
                 <rect x="3" y="5" width="18" height="14" rx="2" />
                 <rect x="12" y="11" width="7" height="6" rx="1" fill="currentColor" />
               </svg>
+              <span>{pip.open ? 'FLOTANDO' : 'FLOTANTE'}</span>
             </button>
           )}
           <div className={styles.elapsed}>{fmtTime(elapsed)}</div>

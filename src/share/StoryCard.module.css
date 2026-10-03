@@ -1,7 +1,7 @@
 .card {
   box-sizing: border-box;
-  background: #f4f1ea;
-  color: #141414;
+  background: var(--bg, #f4f1ea);
+  color: var(--ink, #141414);
   font-family: Inter, system-ui, sans-serif;
   overflow: hidden;
   display: flex;
@@ -35,7 +35,7 @@
   font-weight: 700;
   font-size: 44px;
   line-height: 1.1;
-  color: #6b665d;
+  color: var(--muted, #6b665d);
 }
 .day {
   margin-top: 120px;
@@ -74,7 +74,8 @@
   flex-grow: 1;
 }
 .bottom {
-  background: #c8ff2e;
+  background: var(--accent, #e3202f);
+  color: var(--on-accent, #ffffff);
   border-radius: 64px 64px 0 0;
   padding: 72px 96px 90px;
 }
@@ -95,7 +96,7 @@
   justify-content: space-between;
   align-items: baseline;
   gap: 24px;
-  border-bottom: 3px solid #141414;
+  border-bottom: 3px solid var(--on-accent, #ffffff);
   padding-bottom: 14px;
 }
 .record[data-last='true'] {
