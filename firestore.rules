@@ -53,13 +53,16 @@ service cloud.firestore {
         get(/databases/$(database)/documents/amStudents/$(sid)).data.uid == request.auth.uid;
     }
 
-    // Quién es el profe: se crea una sola vez (la primera vez que se abre la app) y no se cambia más.
+    // Quién es el profe: se crea una sola vez (la primera vez que se abre la app). Después el profe
+    // puede cambiar su nombre y su usuario, pero nadie puede cambiar quién es el profe.
     match /amConfig/profe {
       allow get: if true;
       allow create: if request.auth != null
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.keys().hasOnly(['uid', 'nombre', 'apellido', 'username', 'createdAt']);
-      allow update, delete: if false;
+      allow update: if request.auth != null && resource.data.uid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nombre', 'apellido', 'username']);
+      allow delete: if false;
     }
 
     // Usuario ("nombre.apellido") → cuenta interna. Se lee de a uno antes de entrar; no se puede listar.
