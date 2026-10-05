@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { EntrenoRow, SerieRow } from '../db'
-import { fromLegacy, toRemote } from '../syncFormat'
-import { legacyBloques, rutinaFromFirestore } from './firestoreRutina'
+import { addBloque, fromRow, newBloque } from './editor'
+import { rutinaFromDocs, toDayDocs } from './firestoreRutina'
 import { mapRutina, shortName, type RutinaRow } from './mapRutina'
 
 const bloque = (o: Partial<RutinaRow['dias'][number]['bloques'][number]> & { id: string; orden: number; tipo: 'fuerza' | 'tiempo' | 'circuito'; nombre: string }) => ({
@@ -68,57 +67,37 @@ describe('shortName', () => {
   })
 })
 
-describe('Firestore: días de la app anterior', () => {
-  const day = {
-    id: 'day1',
-    label: 'Día 1',
-    order: 1,
-    groups: {
-      core: [{ id: 'e1', name: 'Plancha con peso', sets: 3, reps: 12, restSeconds: 45 }],
-      fuerza: [{ id: 'e2', name: 'Press Banca', sets: 4, reps: 8, restSeconds: 90 }],
-    },
-  }
+describe('plan guardado en Firestore', () => {
+  const plan = addBloque(
+    { id: 'r', nombre: 'Fuerza', dias: [{ id: 'd1', letra: 'A', bloques: [] }] },
+    'd1',
+    newBloque('fuerza', { id: 'b1', nombre: 'Sentadilla con barra', series: 4, reps: 8, pesoKg: 40, comentario: '  Bajá lento ', videoUrl: 'https://youtu.be/abc' }),
+  )
+  const docs = toDayDocs(plan, 1000)
 
-  it('suma bici al principio y al final (5 min por defecto) y usa el nombre como clave del ejercicio', () => {
-    const b = legacyBloques(day)
-    expect(b.map((x) => x.tipo)).toEqual(['tiempo', 'fuerza', 'fuerza', 'tiempo'])
-    expect(b[0]).toMatchObject({ id: 'day1-warmup', minutos: 5, subtitulo: 'Calentamiento' })
-    expect(b[2]).toMatchObject({ id: 'e2', ejercicio_id: 'press-banca', series: 4, reps: 8, descanso_s: 90 })
+  it('guarda un documento por día con sus bloques, comentario y video', () => {
+    expect(docs).toHaveLength(1)
+    expect(docs[0]).toMatchObject({ id: 'd1', letra: 'A', order: 1, updatedAt: 1000 })
+    expect(docs[0].bloques?.[0]).toMatchObject({ nombre: 'Sentadilla con barra', comentario: 'Bajá lento', video_url: 'https://youtu.be/abc' })
   })
 
-  it('con 0 minutos no hay bloque de bici', () => {
-    expect(legacyBloques({ ...day, warmupMinutes: 0, cooldownMinutes: 0 }).every((x) => x.tipo === 'fuerza')).toBe(true)
+  it('el estudiante ve la indicación y el video del profe', () => {
+    const b = mapRutina(rutinaFromDocs(docs, { nombre: 'Fuerza', publicadaAt: 2000 })).days[0].blocks[0]
+    expect(b).toMatchObject({ note: 'Bajá lento', video: 'https://youtu.be/abc', weight: 40 })
   })
 
-  it('el último peso y descanso del socio pisan lo del profe; "Día 1" queda como letra "1"', () => {
-    const r = mapRutina(rutinaFromFirestore([day], undefined, { press_banca: { weight: 42.5, restSeconds: 120 } }))
-    const press = r.days[0].blocks.find((x) => x.id === 'e2')
-    expect(press).toMatchObject({ kind: 'fuerza', weight: 42.5, restSeconds: 120, exerciseId: 'press-banca' })
-    expect(r.days[0].letter).toBe('1')
+  it('el último peso del estudiante pisa el del plan, salvo que el profe publique después', () => {
+    const prefs = { sentadilla_con_barra: { weight: 45, updatedAt: 3000 } }
+    expect(rutinaFromDocs(docs, { publicadaAt: 2000 }, prefs).dias[0].bloques[0].peso_kg).toBe(45)
+    expect(rutinaFromDocs(docs, { publicadaAt: 4000 }, prefs).dias[0].bloques[0].peso_kg).toBe(40)
   })
 
-  it('un día del panel nuevo usa sus bloques tal cual', () => {
-    const r = rutinaFromFirestore([{ id: 'd', letra: 'B', order: 1, bloques: [bloque({ id: 'x', orden: 0, tipo: 'tiempo', nombre: 'Remo', minutos: 6 })] }], { nombre: 'Fuerza', version: 3 }, undefined)
-    expect(r).toMatchObject({ nombre: 'Fuerza', version: 3, dias: [{ letra: 'B', bloques: [{ id: 'x', minutos: 6 }] }] })
-  })
-})
-
-describe('sync: formato de Firestore', () => {
-  const entreno: EntrenoRow = { id: 'w1', dayId: 'day1', dayLetter: '1', dayName: 'Día 1', empezadoAt: new Date(2026, 8, 30, 22, 30).getTime(), terminadoAt: new Date(2026, 8, 30, 23, 30).getTime(), estado: 'parcial', sensacion: 3, kilosTotal: 600, bloquesHechos: 2, bloquesTotal: 4, synced: 0 }
-  const serie = (n: number): SerieRow => ({ id: `s${n}`, entrenoId: 'w1', bloqueId: 'e2', exerciseId: 'press-banca', ejercicio: 'Press Banca', serieN: n, targetReps: 8, reps: 8, pesoKg: 40, esfuerzo: null, hechaAt: entreno.empezadoAt + n * 60_000 })
-
-  it('usa la fecha local (no UTC) y deja el formato de la app anterior para su panel', () => {
-    const r = toRemote(entreno, [serie(1), serie(2)])
-    expect(r.date).toBe('2026-09-30')
-    expect(r).not.toHaveProperty('synced')
-    expect(r.exercises).toEqual([{ exerciseId: 'e2', name: 'Press Banca', group: 'fuerza', targetSets: 2, reps: 8, sets: [{ weight: 40, reps: 8, completedAt: serie(1).hechaAt }, { weight: 40, reps: 8, completedAt: serie(2).hechaAt }] }])
+  it('ida y vuelta al editor del panel', () => {
+    const back = fromRow(rutinaFromDocs(docs, { nombre: 'Fuerza' }))
+    expect(back.dias[0].bloques[0]).toMatchObject({ comentario: 'Bajá lento', videoUrl: 'https://youtu.be/abc', pesoKg: 40 })
   })
 
-  it('convierte un día de la app anterior en historial; los días sin series no cuentan', () => {
-    const legacy = { date: '2026-09-20', dayId: 'day1', startedAt: 1000, exercises: [{ exerciseId: 'e2', name: 'Press Banca', targetSets: 2, reps: 8, sets: [{ weight: 40, reps: 8, completedAt: 2000 }, { weight: 42.5, reps: 8, completedAt: 3000 }] }, { exerciseId: 'warmup', kind: 'timed', name: 'Calentamiento', targetSets: 1, reps: 0, sets: [{ completedAt: 1500 }] }] }
-    const r = fromLegacy('2026-09-20', legacy)!
-    expect(r.entreno).toMatchObject({ id: 'legacy-2026-09-20', estado: 'completo', kilosTotal: 660, synced: 1 })
-    expect(r.series.map((s) => [s.exerciseId, s.pesoKg])).toEqual([['press-banca', 40], ['press-banca', 42.5]])
-    expect(fromLegacy('x', { exercises: [{ exerciseId: 'e', name: 'E', targetSets: 3, reps: 8, sets: [] }] })).toBeNull()
+  it('un día sin bloques no se puede entrenar', () => {
+    expect(mapRutina(rutinaFromDocs([{ id: 'x', letra: 'B', order: 1, bloques: [] }], null)).days).toEqual([])
   })
 })

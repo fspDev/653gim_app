@@ -21,7 +21,7 @@ export async function askNotificationPermission(): Promise<boolean> {
   return (await Notification.requestPermission()) === 'granted'
 }
 
-export async function showAlert(title: string, body: string, tag = '653-aviso'): Promise<boolean> {
+export async function showAlert(title: string, body: string, tag = 'am-aviso'): Promise<boolean> {
   if (notificationPermission() !== 'granted') return false
   try {
     const reg = await navigator.serviceWorker.ready

@@ -54,8 +54,8 @@
 /* Abierta: pasa a contorno para que se vea que ya está andando. */
 .pipOn {
   background: transparent;
-  color: var(--accent-ink, var(--accent));
-  box-shadow: inset 0 0 0 2px var(--accent-ink, var(--accent));
+  color: var(--accent-ink);
+  box-shadow: inset 0 0 0 2px var(--accent-ink);
 }
 .elapsed {
   min-width: 44px;

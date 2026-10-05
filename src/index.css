@@ -1,10 +1,12 @@
 :root {
   --bg: #f4f1ea;
   --ink: #141414;
-  /* Acento de la marca 653: el rojo de siempre. Va con texto blanco encima. */
+  /* Acento: rojo de la marca 653. Va con texto blanco encima. */
   --accent: #e3202f;
   --accent-pressed: #c41824;
   --on-accent: #ffffff;
+  /* El acento cuando se usa como TEXTO o borde sobre el fondo: lo ajusta la paleta para que se lea. */
+  --accent-ink: #b61a26;
   --muted: #6b665d;
   --muted-2: #9a948a;
   --fill: #e6e1d6;
@@ -37,7 +39,7 @@ body,
 }
 
 body {
-  background: #e9e5dc; /* en escritorio se ve alrededor de la columna de 480 px */
+  background: var(--page-bg, #e9e5dc); /* en escritorio se ve alrededor de la columna de 480 px */
   color: var(--ink);
   font-family: var(--font-body);
   -webkit-tap-highlight-color: transparent;

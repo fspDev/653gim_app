@@ -10,6 +10,7 @@ import { FEELING_LABELS } from '../ui/labels'
 import type { RecordHit } from '../workout/records'
 import { kilosTotal } from '../workout/selectors'
 import type { Workout } from '../workout/types'
+import { Logo } from '../ui/Logo'
 import styles from './Summary.module.css'
 
 interface Props {
@@ -34,7 +35,7 @@ export function Summary({ w, records, streak, onFeeling, onClose }: Props) {
     setShareMsg(null)
     try {
       const blob = await renderStory(card.current)
-      const result = await shareImage(blob, `653-${story.date.replace('.', '-')}.png`, `${story.day} hecho en 653 Gym & Fitness`)
+      const result = await shareImage(blob, `am-${story.date.replace('.', '-')}.png`, `${story.day} hecho con AM Personal Trainer`)
       if (result === 'downloaded') setShareMsg('Se descargó la imagen. Subila a tu historia.')
     } catch {
       setShareMsg('No pudimos armar la imagen. Probá de nuevo.')
@@ -51,7 +52,7 @@ export function Summary({ w, records, streak, onFeeling, onClose }: Props) {
       <div className={styles.col}>
         <div className={styles.head}>
           <div className={styles.topbar}>
-            <div className={styles.logo}>653</div>
+            <Logo />
             <button className={styles.close} aria-label="Cerrar" onClick={onClose}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
                 <path d="M6 6l12 12M18 6L6 18" />

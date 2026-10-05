@@ -1,6 +1,8 @@
 import { useSyncExternalStore } from 'react'
 
 export interface Settings {
+  /** Colores de fondo y texto (ver theme.ts). */
+  paleta: string
   /** Descanso por defecto entre series, en segundos. */
   restSeconds: number
   vibracion: boolean
@@ -16,6 +18,7 @@ export interface Settings {
 export type Flotante = 'salir' | 'serie' | 'boton' | 'nunca'
 
 export const DEFAULT_SETTINGS: Settings = {
+  paleta: '653',
   restSeconds: 90,
   vibracion: true,
   sonido: true,
@@ -24,7 +27,7 @@ export const DEFAULT_SETTINGS: Settings = {
   flotante: 'salir',
 }
 
-const KEY = '653:settings'
+const KEY = 'g653:settings'
 const listeners = new Set<() => void>()
 let cache: Settings | null = null
 

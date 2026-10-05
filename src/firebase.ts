@@ -1,8 +1,4 @@
-import { initializeApp, getApps } from 'firebase/app'
-import { browserLocalPersistence, getAuth, setPersistence } from 'firebase/auth'
-import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore'
-
-/** El mismo proyecto que la app anterior: mismas cuentas, rutinas e historial. */
+/** El mismo proyecto de Firebase que la app de 653 Gym: todo lo de AM lleva el prefijo "am". */
 export const firebaseConfig = {
   apiKey: 'AIzaSyAeBQNCxL8tzeRfAfyjTOOqcivt5lFEgjk',
   authDomain: 'somaapp-7166a.firebaseapp.com',
@@ -12,27 +8,13 @@ export const firebaseConfig = {
   appId: '1:804374144817:web:73c38e8af161da4a503210',
 }
 
-export const app = getApps()[0] ?? initializeApp(firebaseConfig)
-export const auth = getAuth(app)
-void setPersistence(auth, browserLocalPersistence)
-
-// Caché local persistente: en el gimnasio la señal es mala; Firestore lee y
-// escribe igual y sincroniza al volver la red.
-function makeDb() {
-  try {
-    return initializeFirestore(app, { ignoreUndefinedProperties: true, localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) })
-  } catch {
-    return getFirestore(app)
-  }
-}
-export const db = makeDb()
-
-// Colecciones con prefijo "gym": el proyecto de Firebase es compartido con otra app.
 export const COL = {
-  users: 'gymUsers',
-  plans: 'gymPlans',
-  sessions: 'gymSessions',
-  library: 'gymExerciseLibrary',
+  /** `g653Config/profe`: quién es el profe ({ uid, nombre, username }). */
+  config: 'g653Config',
+  /** `g653Logins/{usuario}`: con qué cuenta interna entra cada usuario ({ email, sid?, rol }). */
+  logins: 'g653Logins',
+  /** `g653Students/{sid}` + subcolecciones `days`, `logs`, `pagos`, `medidas`. */
+  students: 'g653Students',
+  /** Biblioteca de ejercicios del profe (con su video). */
+  exercises: 'g653Exercises',
 } as const
-
-export { ADMIN_EMAIL, localDateKey, prefKey, slugify, usernameToEmail } from './keys'

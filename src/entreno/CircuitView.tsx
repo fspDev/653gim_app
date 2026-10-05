@@ -6,6 +6,7 @@ import type { CircuitRun, Workout } from '../workout/types'
 import styles from './CircuitView.module.css'
 import { fitFont } from './fit'
 import { Header } from './Header'
+import { NotaEnVivo } from './NotaEnVivo'
 import { Shell, SrOnly } from './Shell'
 
 interface Props {
@@ -41,6 +42,7 @@ export function CircuitView({ w, block, run, now, dispatch, onExit, overlay, ine
             RONDA {run.round} DE {block.rounds}
           </span>
         </div>
+        <NotaEnVivo note={block.note} video={block.video} className={styles.nota} />
         <div className={styles.name} style={{ fontSize: fitFont(step.name, 40) }}>
           {step.name.toUpperCase()}
         </div>

@@ -1,17 +1,7 @@
-// Claves y formatos compartidos. Sin Firebase: lo usan también la lógica pura y los tests.
-
-/** Cuenta interna de Firebase a partir del nombre (el socio nunca la ve). */
-export function usernameToEmail(username: string): string {
-  const slug = stripDiacritics(username.trim().toLowerCase())
-    .replace(/[^a-z0-9]+/g, '.')
-    .replace(/^\.+|\.+$/g, '')
-  return `${slug}@653gym.app`
-}
-
-export const ADMIN_EMAIL = 'admin@653gym.app'
+// Claves y formatos compartidos (lógica pura, sin dependencias).
 
 export function stripDiacritics(s: string): string {
-  return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  return s.normalize('NFD').replace(/[̀-ͯ]/g, '')
 }
 
 /** "Press banca con barra" → "press-banca-con-barra". Es la clave del ejercicio en historial y biblioteca. */
@@ -21,7 +11,7 @@ export function slugify(name: string): string {
     .replace(/^-+|-+$/g, '')
 }
 
-/** Clave de `gymUsers.exercisePrefs` (formato de la app anterior). */
+/** Clave de `exercisePrefs` (último peso que usó el estudiante en cada ejercicio). */
 export function prefKey(name: string): string {
   return slugify(name).replace(/-/g, '_')
 }

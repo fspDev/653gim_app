@@ -6,6 +6,7 @@ import type { TimeRun, Workout } from '../workout/types'
 import { blockDetail } from './describe'
 import { fitFont } from './fit'
 import { Header } from './Header'
+import { NotaEnVivo } from './NotaEnVivo'
 import { Shell, SrOnly } from './Shell'
 import styles from './TimeView.module.css'
 
@@ -38,6 +39,7 @@ export function TimeView({ w, block, run, now, dispatch, onExit, overlay, inertF
           {block.name.toUpperCase()}
         </div>
         {block.subtitle && <div className={styles.subtitle}>{block.subtitle}</div>}
+        <NotaEnVivo note={block.note} video={block.video} className={styles.nota} />
         <div className={styles.time} role="timer" aria-label={`Quedan ${fmtTime(left)}`}>
           {fmtTime(left)}
         </div>

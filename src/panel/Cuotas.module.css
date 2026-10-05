@@ -1,0 +1,68 @@
+.grid {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 10px;
+}
+.estadoLabel {
+  font-family: var(--font-label);
+  font-weight: 800;
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+.estado {
+  margin-top: 8px;
+  font-size: 18px;
+  font-weight: 700;
+}
+.months {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.month {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 12px 12px 16px;
+  border-radius: 16px;
+  background: var(--fill);
+}
+.month[data-state='debe'] {
+  box-shadow: inset 4px 0 0 var(--accent-ink);
+}
+.month[data-state='futuro'] {
+  background: none;
+  border: 1.5px dashed var(--track);
+}
+.monthName {
+  font-weight: 700;
+  font-size: 16px;
+  text-transform: capitalize;
+}
+.monthActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.pagoForm {
+  flex-basis: 100%;
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+}
+.pagoFields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0 10px;
+}
+.pagoFields .input,
+.pagoFields input,
+.pagoFields select {
+  background: var(--bg);
+}

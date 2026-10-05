@@ -1,24 +1,21 @@
 import { useAuth } from '../auth/context'
 import type { Day } from '../data'
-import { DAYS } from '../data'
-import { useRutina } from './rutina'
 import type { Rutina } from './mapRutina'
+import { useRutina } from './rutina'
 
 export interface DaysState {
   days: Day[]
   rutina: Rutina | null
-  /** Con cuenta, todavía no se sabe si el profe cargó la rutina. */
+  /** Todavía no se sabe si el profe cargó el plan. */
   loading: boolean
-  /** Con cuenta y sin rutina publicada: toca la pantalla "Todavía nada". */
+  /** Sin plan publicado: toca la pantalla "Todavía nada". */
   sinRutina: boolean
 }
 
-/** Los días que se pueden entrenar: la rutina del profe, o el Día B de ejemplo cuando la app corre en modo local. */
+/** Los días que se pueden entrenar: los del plan que armó el profe. */
 export function useDays(): DaysState {
-  const { status, userId } = useAuth()
-  const { rutina, loading } = useRutina(status === 'in' ? userId : null)
-
-  if (status === 'local') return { days: DAYS, rutina: null, loading: false, sinRutina: false }
+  const { profile } = useAuth()
+  const { rutina, loading } = useRutina(profile?.sid ?? null)
   const days = rutina?.days ?? []
-  return { days, rutina, loading, sinRutina: status === 'in' && !loading && days.length === 0 }
+  return { days, rutina, loading, sinRutina: !loading && days.length === 0 }
 }

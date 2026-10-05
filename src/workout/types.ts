@@ -31,7 +31,7 @@ export interface StrengthRun {
   restEnd: number
   /** Duración de referencia del anillo, en segundos. */
   restTotal: number
-  /** Los primeros ms del descanso: el disco lima todavía se está ahuecando. */
+  /** Los primeros ms del descanso: el disco rojo todavía se está ahuecando. */
   fresh: boolean
   suggestionUsed: boolean
 }

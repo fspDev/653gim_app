@@ -1,0 +1,147 @@
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+.tools {
+  margin-top: 22px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.search {
+  max-width: 340px;
+  margin-top: 0;
+}
+.filters {
+  display: flex;
+  gap: 6px;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.filter {
+  flex-shrink: 0;
+}
+.filter {
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 20px;
+  background: var(--fill);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.filter[aria-pressed='true'] {
+  background: var(--ink);
+  color: var(--bg);
+}
+.count {
+  margin-left: 4px;
+  opacity: 0.7;
+}
+
+.list {
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  padding: 14px 44px 14px 16px;
+  border-radius: 18px;
+  background: var(--fill);
+  color: inherit;
+  text-decoration: none;
+}
+.row:hover {
+  background: var(--track);
+}
+.row:focus-visible {
+  outline: 3px solid var(--accent-ink);
+  outline-offset: 2px;
+}
+.who {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.avatar {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 19px;
+}
+.whoText {
+  min-width: 0;
+}
+.name {
+  font-weight: 700;
+  font-size: 17px;
+}
+.user {
+  font-size: 13px;
+  color: var(--muted);
+}
+.cell {
+  font-size: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+.cell::before {
+  content: attr(data-label) ': ';
+  color: var(--muted);
+  margin-right: 2px;
+}
+.strong {
+  font-weight: 700;
+}
+.streak {
+  color: var(--muted);
+}
+.chev {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  translate: 0 -50%;
+  color: var(--muted);
+}
+
+@media (min-width: 900px) {
+  .row {
+    grid-template-columns: minmax(220px, 1.3fr) 1fr 1fr 190px;
+    align-items: center;
+    gap: 16px;
+  }
+  .cell::before {
+    content: none;
+  }
+}
+
+.claveRow {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+.claveRow .ghostBtn {
+  flex-shrink: 0;
+}

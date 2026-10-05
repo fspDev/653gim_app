@@ -1,0 +1,42 @@
+.box {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+.note {
+  margin: 0;
+  flex: 1 1 200px;
+  display: flex;
+  gap: 8px;
+  font-size: 15px;
+  line-height: 1.4;
+  color: inherit;
+}
+.icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--accent-ink);
+}
+.box[data-compact='true'] .note {
+  font-size: 14px;
+}
+.video {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 16px 0 12px;
+  border-radius: 22px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-family: var(--font-label);
+  font-weight: 800;
+  font-size: 16px;
+  letter-spacing: 0.06em;
+  text-decoration: none;
+}
+.video:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}

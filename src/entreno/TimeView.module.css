@@ -112,11 +112,15 @@
 .nextDetail {
   margin-top: 4px;
   font-size: 15px;
-  color: #d8d3c8;
+  color: color-mix(in srgb, var(--dark-text) 85%, var(--dark-bg));
 }
 
 @media (prefers-reduced-motion: reduce) {
   .barFill {
     transition: none;
   }
+}
+
+.nota {
+  margin-top: 12px;
 }

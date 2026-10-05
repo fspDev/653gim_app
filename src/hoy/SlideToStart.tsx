@@ -9,7 +9,7 @@ interface Props {
 
 const THRESHOLD = 0.9
 
-/** "Deslizá para empezar": se arrastra el círculo lima hasta el final. Enter / espacio también lo activan. */
+/** "Deslizá para empezar": se arrastra el círculo rojo hasta el final. Enter / espacio también lo activan. */
 export function SlideToStart({ label, ariaLabel, onComplete }: Props) {
   const track = useRef<HTMLDivElement>(null)
   const drag = useRef<{ startX: number; max: number } | null>(null)

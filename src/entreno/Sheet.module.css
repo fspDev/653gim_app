@@ -27,7 +27,7 @@
   width: 44px;
   height: 5px;
   border-radius: 3px;
-  background: #cfc8ba;
+  background: var(--track);
 }
 
 @keyframes fade {
@@ -47,10 +47,10 @@
   }
 }
 
-/* Las hojas son claras aunque la pantalla de atrás sea la oscura. */
+/* Las hojas usan la paleta elegida aunque la pantalla de atrás sea el descanso oscuro. */
 .sheet {
-  --bg: #f4f1ea;
-  --ink: #141414;
-  --muted: #6b665d;
-  --fill: #e6e1d6;
+  --bg: var(--sheet-bg, #f4f1ea);
+  --ink: var(--sheet-ink, #141414);
+  --muted: var(--sheet-muted, #6b665d);
+  --fill: var(--sheet-fill, #e6e1d6);
 }

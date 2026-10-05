@@ -1,11 +1,15 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useState, type FormEvent } from 'react'
 import { useAuth } from '../auth/context'
+import { store } from '../backend'
+import { problemaClave } from '../cuentas'
+import { estadoCuota, estadoLabel, fmtPesos, type CuotaConfig } from '../cuotas'
+import { COL } from '../firebase'
 import { fmtTime } from '../format'
 import { useDays } from '../rutina/useDays'
 import { updateSettings, useSettings, type Settings } from '../settings'
 import { askNotificationPermission, notificationPermission, showAlert } from '../notify'
-import { closePiP, isPiPOpen, isPiPSupported, lastPiPError, openPiP } from '../pip/pipEngine'
+import { closePiP, isIOS, isPiPOpen, isPiPSupported, lastPiPError, openPiP, preparePiP } from '../pip/pipEngine'
+import { PALETTES } from '../theme'
 import styles from './Perfil.module.css'
 
 const REST_STEP = 15
@@ -43,12 +47,12 @@ export function Perfil() {
   const [probado, setProbado] = useState<string | null>(null)
   const [pipTest, setPipTest] = useState<string | null>(null)
   const s = useSettings()
-  const navigate = useNavigate()
-  const { status, profile, signOut } = useAuth()
+  useEffect(preparePiP, [])
+  const { profile, signOut } = useAuth()
   const { rutina } = useDays()
-  const nombre = profile?.nombre.trim() || (status === 'in' ? profile?.email : null) || 'Socio'
-  const plan = rutina?.diasPorSemana ? ` · plan de ${rutina.diasPorSemana} días` : ''
-  const sub = profile?.profeNombre ? `Tu profe: ${profile.profeNombre}${plan}` : 'Tus entrenos quedan guardados en este teléfono'
+  const nombre = `${profile?.nombre ?? ''} ${profile?.apellido ?? ''}`.trim() || 'Vos'
+  const plan = rutina?.diasPorSemana ? ` · plan de ${rutina.diasPorSemana} ${rutina.diasPorSemana === 1 ? 'día' : 'días'}` : ''
+  const sub = `${profile?.username ?? ''}${plan}`
   const setRest = (delta: number) => updateSettings({ restSeconds: Math.min(REST_MAX, Math.max(REST_MIN, s.restSeconds + delta)) })
 
   return (
@@ -57,20 +61,22 @@ export function Perfil() {
 
       <div className={styles.who}>
         <div className={styles.avatar} aria-hidden="true">
-          {profile ? nombre.charAt(0).toUpperCase() : '653'}
+          {nombre.charAt(0).toUpperCase()}
         </div>
-        <div>
+        <div className={styles.whoText}>
           <div className={styles.name}>{nombre}</div>
           <div className={styles.sub}>{sub}</div>
         </div>
       </div>
+
+      {profile?.sid && <Cuota sid={profile.sid} />}
 
       <div className={styles.section}>DURANTE EL ENTRENO</div>
       <div className={styles.rows}>
         <div className={styles.row}>
           <div>
             <div className={styles.label}>Descanso entre series</div>
-            <div className={styles.hint}>Si tu profe no indica otro</div>
+            <div className={styles.hint}>Si el ejercicio no tiene uno propio</div>
           </div>
           <div className={styles.stepper}>
             <button className={styles.round} aria-label="Menos descanso" onClick={() => setRest(-REST_STEP)} disabled={s.restSeconds <= REST_MIN}>
@@ -107,6 +113,20 @@ export function Perfil() {
       </div>
 
       <div className={styles.section} style={{ marginTop: 24 }}>
+        COLORES
+      </div>
+      <div className={styles.palettes} role="radiogroup" aria-label="Colores de fondo y texto">
+        {PALETTES.map((p) => (
+          <button key={p.id} className={styles.palette} role="radio" aria-checked={s.paleta === p.id} aria-label={p.nombre} onClick={() => updateSettings({ paleta: p.id })}>
+            <span className={styles.swatch} style={{ background: p.bg, color: p.ink }}>
+              Aa
+            </span>
+            <span className={styles.paletteName}>{p.nombre}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className={styles.section} style={{ marginTop: 24 }}>
         VENTANA FLOTANTE
       </div>
       {isPiPSupported() ? (
@@ -137,7 +157,7 @@ export function Perfil() {
                     return
                   }
                   const ok = await openPiP()
-                  setPipTest(ok ? '✓ Funcionó. Tocá de nuevo para cerrarla.' : `No se abrió: ${lastPiPError ?? 'motivo desconocido'}`)
+                  setPipTest(ok ? '✓ Funcionó. Tocá de nuevo para cerrarla.' : `No se abrió: ${lastPiPError ?? 'motivo desconocido'}${isIOS() ? ' En iPhone probá con iOS actualizado y abriendo la app desde Safari.' : ''}`)
                 }}
               >
                 PROBAR
@@ -146,7 +166,7 @@ export function Perfil() {
           </div>
         </>
       ) : (
-        <p className={styles.note}>Este navegador no permite ventanas flotantes. En Android usá Chrome actualizado.</p>
+        <p className={styles.note}>{isIOS() ? 'Este iPhone no permite ventanas flotantes desde la web. Actualizá iOS y probá abriendo la app desde Safari.' : 'Este navegador no permite ventanas flotantes. En Android usá Chrome actualizado.'}</p>
       )}
 
       <div className={styles.section} style={{ marginTop: 24 }}>
@@ -162,7 +182,7 @@ export function Perfil() {
             <button
               className={styles.small}
               onClick={async () => {
-                const ok = await showAlert('Así te avisa 653 💪', 'Cuando termine el descanso vas a sentir esta vibración.', '653-prueba')
+                const ok = await showAlert('Así te avisa AM 💪', 'Cuando termine el descanso vas a sentir esta vibración.', 'am-prueba')
                 setProbado(ok ? 'Enviado. ¿Vibró?' : 'No se pudo mandar')
               }}
             >
@@ -182,17 +202,118 @@ export function Perfil() {
         </div>
       </div>
 
-      {status === 'in' && (
-        <button
-          className={styles.signOut}
-          onClick={async () => {
-            await signOut()
-            navigate('/ingreso', { replace: true })
-          }}
-        >
-          Cerrar sesión
-        </button>
-      )}
+      <div className={styles.section} style={{ marginTop: 24 }}>
+        CUENTA
+      </div>
+      <CambiarClave />
+      <button className={styles.signOut} onClick={() => void signOut()}>
+        Cerrar sesión
+      </button>
     </main>
+  )
+}
+
+/** Cuota del mes: lo mismo que ve el profe en el panel. */
+function Cuota({ sid }: { sid: string }) {
+  const [texto, setTexto] = useState<{ estado: string; detalle: string; alerta: boolean } | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    Promise.all([store.get(`${COL.students}/${sid}`), store.list(`${COL.students}/${sid}/pagos`)])
+      .then(([st, pagos]) => {
+        if (cancelled || !st) return
+        const cfg = st.cuota as CuotaConfig | undefined
+        const e = estadoCuota(cfg, pagos.map((p) => ({ periodo: String(p.data.periodo) })), Number(st.createdAt ?? Date.now()), Date.now())
+        if (e.tipo === 'sin-cuota' || !cfg) return
+        setTexto({ estado: estadoLabel(e), detalle: `Cuota mensual ${fmtPesos(cfg.monto)} · vence el ${cfg.dia} de cada mes`, alerta: e.tipo === 'vencida' })
+      })
+      .catch(() => {
+        /* sin señal: no se muestra */
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [sid])
+
+  if (!texto) return null
+  return (
+    <div className={styles.cuota} data-alerta={texto.alerta}>
+      <div className={styles.label}>{texto.estado}</div>
+      <div className={styles.hint}>{texto.detalle}</div>
+    </div>
+  )
+}
+
+function CambiarClave() {
+  const { cambiarClave } = useAuth()
+  const [open, setOpen] = useState(false)
+  const [actual, setActual] = useState('')
+  const [nueva, setNueva] = useState('')
+  const [repetir, setRepetir] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const problema = nueva ? problemaClave(nueva) : null
+  const ok = !!actual && !problemaClave(nueva) && nueva === repetir
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault()
+    if (!ok || busy) return
+    setBusy(true)
+    setMsg(null)
+    const r = await cambiarClave(actual, nueva)
+    setBusy(false)
+    if (r.ok) {
+      setMsg({ ok: true, text: '✓ Listo: la próxima vez entrás con la nueva.' })
+      setActual('')
+      setNueva('')
+      setRepetir('')
+      setOpen(false)
+    } else {
+      setMsg({ ok: false, text: r.reason === 'datos' ? 'La contraseña actual no es esa.' : r.reason === 'red' ? 'No hay conexión.' : 'No se pudo cambiar. Probá de nuevo.' })
+    }
+  }
+
+  if (!open) {
+    return (
+      <div className={styles.rows}>
+        <div className={styles.row}>
+          <div>
+            <div className={styles.label}>Contraseña</div>
+            {msg && <div className={styles.hint}>{msg.text}</div>}
+          </div>
+          <button className={styles.small} onClick={() => setOpen(true)}>
+            CAMBIAR
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <form className={styles.claveForm} onSubmit={submit} noValidate>
+      <label className={styles.fieldLabel} htmlFor="clave-actual">
+        Contraseña actual
+      </label>
+      <input id="clave-actual" className={styles.field} type="password" autoComplete="current-password" value={actual} onChange={(e) => setActual(e.target.value)} />
+      <label className={styles.fieldLabel} htmlFor="clave-nueva">
+        Nueva
+      </label>
+      <input id="clave-nueva" className={styles.field} type="password" autoComplete="new-password" value={nueva} onChange={(e) => setNueva(e.target.value)} />
+      <label className={styles.fieldLabel} htmlFor="clave-repetir">
+        Repetila
+      </label>
+      <input id="clave-repetir" className={styles.field} type="password" autoComplete="new-password" value={repetir} onChange={(e) => setRepetir(e.target.value)} />
+      <div className={styles.hint} role={msg ? 'alert' : undefined}>
+        {msg?.text ?? problema ?? (repetir && nueva !== repetir ? 'No coinciden.' : ' ')}
+      </div>
+      <div className={styles.formActions}>
+        <button type="button" className={styles.linkBtn} onClick={() => setOpen(false)}>
+          Cancelar
+        </button>
+        <button type="submit" className={styles.small} disabled={!ok || busy}>
+          {busy ? 'GUARDANDO…' : 'GUARDAR'}
+        </button>
+      </div>
+    </form>
   )
 }

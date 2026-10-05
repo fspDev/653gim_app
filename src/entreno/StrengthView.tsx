@@ -5,6 +5,7 @@ import { useSettings } from '../settings'
 import { secondsLeft, WEIGHT_STEP, type WorkoutAction } from '../workout/reducer'
 import type { StrengthRun, Workout } from '../workout/types'
 import { Header } from './Header'
+import { NotaEnVivo } from './NotaEnVivo'
 import { fitFont } from './fit'
 import * as haptics from './haptics'
 import { Shell, SrOnly } from './Shell'
@@ -77,6 +78,7 @@ export function StrengthView({ w, block, run, now, dispatch, onExit, onLog, over
       data-warn={warn}
       data-fresh={run.fresh}
       data-theme={rest && dark ? 'oscuro' : 'claro'}
+      data-note={!!(block.note || block.video)}
       inertFrame={inertFrame}
       overlay={overlay}
     >
@@ -108,6 +110,11 @@ export function StrengthView({ w, block, run, now, dispatch, onExit, onLog, over
           {block.short} · SERIE {run.serie} LISTA
         </div>
         <div className={styles.title}>DESCANSO</div>
+      </div>
+
+      {/* Indicación del profe: siempre a la vista */}
+      <div className={styles.noteLayer}>
+        <NotaEnVivo note={block.note} video={block.video} />
       </div>
 
       {/* Peso: se achica y sube hacia el anillo */}
@@ -184,7 +191,7 @@ export function StrengthView({ w, block, run, now, dispatch, onExit, onLog, over
         </button>
       </div>
 
-      {/* Bloque inferior: HECHA en lima ↔ "Después" en negro */}
+      {/* Bloque inferior: HECHA en rojo ↔ "Después" en negro */}
       <div className={styles.sheet}>
         <button
           className={styles.done}

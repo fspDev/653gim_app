@@ -99,5 +99,63 @@ service cloud.firestore {
     match /amExercises/{exId} {
       allow read, write: if amProfe();
     }
+
+    // ---- 653 Gym & Fitness (versión con panel de AM: colecciones g653*) ----
+    // Un profe y sus estudiantes. Los estudiantes entran con una cuenta interna que el profe crea;
+    // `g653Students/{sid}.uid` dice cuál es la cuenta vigente (cambia cuando el profe resetea la contraseña).
+    function g653Profe() {
+      return request.auth != null &&
+        get(/databases/$(database)/documents/g653Config/profe).data.uid == request.auth.uid;
+    }
+    function g653EsEstudiante(sid) {
+      return request.auth != null &&
+        get(/databases/$(database)/documents/g653Students/$(sid)).data.uid == request.auth.uid;
+    }
+
+    // Quién es el profe: se crea una sola vez (la primera vez que se abre la app). Después el profe
+    // puede cambiar su nombre y su usuario, pero nadie puede cambiar quién es el profe.
+    match /g653Config/profe {
+      allow get: if true;
+      // El profe del 653 ya existe (lo cargó la migración): nadie puede reclamar la cuenta desde la app.
+      allow create: if false;
+      allow update: if request.auth != null && resource.data.uid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nombre', 'apellido', 'username']);
+      allow delete: if false;
+    }
+
+    // Usuario ("nombre.apellido") → cuenta interna. Se lee de a uno antes de entrar; no se puede listar.
+    match /g653Logins/{username} {
+      allow get: if true;
+      allow write: if g653Profe();
+    }
+
+    match /g653Students/{sid} {
+      allow read: if g653Profe() || (request.auth != null && resource.data.uid == request.auth.uid);
+      allow create, delete: if g653Profe();
+      // El estudiante solo toca sus últimos pesos y cuándo entró; plan, cuota y cuenta los maneja el profe.
+      allow update: if g653Profe() || (request.auth != null && resource.data.uid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['exercisePrefs', 'ultimoAcceso']));
+
+      match /days/{dayId} {
+        allow read: if g653Profe() || g653EsEstudiante(sid);
+        allow write: if g653Profe();
+      }
+      match /logs/{logId} {
+        allow read, create, update: if g653Profe() || g653EsEstudiante(sid);
+        allow delete: if g653Profe();
+      }
+      match /pagos/{pagoId} {
+        allow read: if g653Profe() || g653EsEstudiante(sid);
+        allow write: if g653Profe();
+      }
+      match /medidas/{medidaId} {
+        allow read: if g653Profe() || g653EsEstudiante(sid);
+        allow write: if g653Profe();
+      }
+    }
+
+    match /g653Exercises/{exId} {
+      allow read, write: if g653Profe();
+    }
   }
 }

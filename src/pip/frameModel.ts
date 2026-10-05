@@ -38,6 +38,8 @@ export interface PipFrame {
   sub: string
   /** 0–1 para el anillo; null = sin anillo. */
   ring: number | null
+  /** Segundos de la cuenta regresiva a la vista (descanso, bici, paso por tiempo); null = no hay. */
+  countdown: number | null
   paused: boolean
   controls: PipControls
 }
@@ -85,6 +87,7 @@ export function frameOf(w: Workout, now: number): PipFrame {
       title: 'TERMINASTE',
       sub: 'Volvé a la app para ver el resumen',
       ring: null,
+      countdown: null,
       paused: false,
       controls: controls({ next: null, prev: null, playPause: null }),
     }
@@ -101,6 +104,7 @@ export function frameOf(w: Workout, now: number): PipFrame {
       title: (next?.name ?? '').toUpperCase(),
       sub: `Bloque ${w.index + 2} de ${w.day.blocks.length}`,
       ring: null,
+      countdown: left,
       paused,
       controls: controls({ next: 'between-start', prev: null, playPause: 'between-toggle' }),
     }
@@ -116,6 +120,7 @@ export function frameOf(w: Workout, now: number): PipFrame {
         title: block.name.toUpperCase(),
         sub: 'Tu serie',
         ring: null,
+        countdown: null,
         paused: false,
         controls: controls({ next: 'done', prev: null, playPause: null }),
       }
@@ -130,6 +135,7 @@ export function frameOf(w: Workout, now: number): PipFrame {
       title: block.name.toUpperCase(),
       sub: last ? `Sigue: ${next ? next.name : 'fin del entreno'}` : `Sigue: serie ${run.serie + 1} · ${kg(run.weight)} kg`,
       ring: run.restTotal ? Math.min(1, left / run.restTotal) : 0,
+      countdown: left,
       paused: false,
       controls: controls({ next: 'skip-rest', prev: 'rest-plus', playPause: null }),
     }
@@ -146,6 +152,7 @@ export function frameOf(w: Workout, now: number): PipFrame {
       title: block.name.toUpperCase(),
       sub: block.hint ?? (next ? `Sigue: ${next.name}` : ''),
       ring: run.total ? Math.min(1, left / run.total) : 0,
+      countdown: left,
       paused,
       controls: controls({ next: 'time-finish', prev: null, playPause: 'time-toggle' }),
     }
@@ -164,6 +171,7 @@ export function frameOf(w: Workout, now: number): PipFrame {
       title: step.name.toUpperCase(),
       sub: block.name,
       ring: timed && step.seconds ? Math.min(1, left / step.seconds) : null,
+      countdown: timed ? left : null,
       paused,
       controls: controls({ next: 'circuit-next', prev: 'circuit-prev', playPause: timed ? 'circuit-toggle' : null }),
     }
@@ -177,6 +185,7 @@ export function frameOf(w: Workout, now: number): PipFrame {
     title: '',
     sub: '',
     ring: null,
+    countdown: null,
     paused: false,
     controls: controls({ next: null, prev: null, playPause: null }),
   }

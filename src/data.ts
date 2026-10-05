@@ -5,6 +5,10 @@ interface BlockBase {
   /** Nombre corto para encabezados chicos. */
   short: string
   minutes: number
+  /** Indicación del profe. */
+  note?: string
+  /** Video de YouTube con la técnica. */
+  video?: string
 }
 
 /** Bici, elongación: cuenta regresiva simple. */

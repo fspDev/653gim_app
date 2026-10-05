@@ -32,7 +32,7 @@ if (target === 'prod') {
 } else {
   rmSync(join(tmp, 'v2'), { recursive: true, force: true })
   cpSync('dist', join(tmp, 'v2'), { recursive: true })
-  copyFileSync('dist/index.html', join(tmp, '404.html'))
+  // El 404.html de la raíz es de la app publicada: no se toca (la de prueba se abre desde /v2/).
 }
 // Sin esto, GitHub Pages corre Jekyll y descarta las carpetas que empiezan con "_".
 writeFileSync(join(tmp, '.nojekyll'), '')

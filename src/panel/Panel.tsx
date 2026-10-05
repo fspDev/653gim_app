@@ -1,49 +1,64 @@
 import { NavLink, Navigate, Route, Routes } from 'react-router-dom'
 import { useAuth } from '../auth/context'
-import { EditorRutina } from './EditorRutina'
+import { SinAcceso } from '../auth/SinAcceso'
+import { LogoMark } from '../ui/Logo'
+import { Ejercicios } from './Ejercicios'
+import { MiCuenta } from './MiCuenta'
+import { MiRutina } from './MiRutina'
+import { Estudiante } from './Estudiante'
+import { Estudiantes } from './Estudiantes'
 import styles from './Panel.module.css'
-import { Socios } from './Socios'
 
-/** Panel del profe (escritorio, fluido): solo para `rol = 'profe'`. */
+/** Panel del profe: estudiantes, su plan, registro, evolución y cuotas. Funciona en el celular y en la compu. */
 export function Panel() {
-  const { status, profile } = useAuth()
+  const { status, profile, signOut } = useAuth()
 
   if (status === 'loading') return null
   if (status === 'out') return <Navigate to="/ingreso" replace />
-  if (status === 'local') {
-    return (
-      <main className={styles.note}>
-        <h1 className={styles.noteTitle}>PANEL DEL PROFE</h1>
-        <p>El panel necesita una cuenta de profe: salí del modo demo y entrá con tu usuario.</p>
-      </main>
-    )
-  }
-  if (!profile) return <main className={styles.note}>Cargando tu perfil…</main>
+  if (status === 'sin-acceso') return <SinAcceso />
+  if (!profile) return null
   if (profile.rol !== 'profe') return <Navigate to="/" replace />
 
   return (
     <div className={styles.layout}>
-      <aside className={styles.side}>
-        <div className={styles.logo}>653</div>
-        <div className={styles.tag}>PANEL DEL PROFE</div>
-        <NavLink to="/panel" end className={styles.link}>
-          Socios
-        </NavLink>
-        {/* Sin diseño todavía (PLAN.md, pendientes de diseño de la fase 4). */}
-        <span className={styles.soon} aria-disabled="true">
-          Plantillas de rutina <small>pronto</small>
-        </span>
-        <span className={styles.soon} aria-disabled="true">
-          Ejercicios <small>pronto</small>
-        </span>
+      <header className={styles.side}>
+        <div className={styles.brand}>
+          <LogoMark height={34} />
+          <div className={styles.brandText}>
+            <span className={styles.brandName}>GYM &amp; FITNESS</span>
+            <span className={styles.brandTag}>PANEL DEL PROFE</span>
+          </div>
+        </div>
+        <nav className={styles.nav} aria-label="Panel">
+          <NavLink to="/panel" end className={styles.link}>
+            Estudiantes
+          </NavLink>
+          <NavLink to="/panel/ejercicios" className={styles.link}>
+            Ejercicios
+          </NavLink>
+          <NavLink to="/panel/mi-rutina" className={styles.link}>
+            Mi rutina
+          </NavLink>
+          <NavLink to="/panel/cuenta" className={styles.link}>
+            Mi cuenta
+          </NavLink>
+        </nav>
         <div className={styles.grow} />
         <div className={styles.who}>
-          {profile.nombre || profile.email} · profe
+          <NavLink to="/panel/cuenta" className={styles.whoName}>
+            {profile.nombre} {profile.apellido}
+          </NavLink>
+          <button className={styles.out} onClick={() => void signOut()}>
+            Salir
+          </button>
         </div>
-      </aside>
+      </header>
       <Routes>
-        <Route index element={<Socios profeId={profile.id} />} />
-        <Route path="socio/:id" element={<EditorRutina profeId={profile.id} />} />
+        <Route index element={<Estudiantes />} />
+        <Route path="ejercicios" element={<Ejercicios />} />
+        <Route path="mi-rutina/*" element={<MiRutina />} />
+        <Route path="cuenta" element={<MiCuenta />} />
+        <Route path="estudiante/:id/*" element={<Estudiante />} />
         <Route path="*" element={<Navigate to="/panel" replace />} />
       </Routes>
     </div>

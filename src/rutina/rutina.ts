@@ -1,24 +1,24 @@
 import { useEffect, useState } from 'react'
-import { collection, doc, getDoc, getDocs } from 'firebase/firestore'
-import { COL, db } from '../firebase'
-import { rutinaFromFirestore, type DayDoc, type ExercisePref } from './firestoreRutina'
+import { store } from '../backend'
+import { COL } from '../firebase'
+import { rutinaFromDocs, type DayDoc, type ExercisePref, type RutinaMeta } from './firestoreRutina'
 import { mapRutina, type Rutina } from './mapRutina'
 
-const KEY = '653:rutina'
+const KEY = 'g653:rutina'
 
-function readCache(userId: string): Rutina | null {
+function readCache(sid: string): Rutina | null {
   try {
     const raw = localStorage.getItem(KEY)
-    const parsed = raw ? (JSON.parse(raw) as { userId: string; rutina: Rutina | null }) : null
-    return parsed?.userId === userId ? parsed.rutina : null
+    const parsed = raw ? (JSON.parse(raw) as { sid: string; rutina: Rutina | null }) : null
+    return parsed?.sid === sid ? parsed.rutina : null
   } catch {
     return null
   }
 }
 
-function writeCache(userId: string, rutina: Rutina | null) {
+function writeCache(sid: string, rutina: Rutina | null) {
   try {
-    localStorage.setItem(KEY, JSON.stringify({ userId, rutina }))
+    localStorage.setItem(KEY, JSON.stringify({ sid, rutina }))
   } catch {
     /* sin espacio: se vuelve a bajar la próxima vez */
   }
@@ -32,55 +32,54 @@ export function clearRutinaCache() {
   }
 }
 
-/** Baja la rutina del socio (días + sus preferencias de peso y descanso). `null` = no tiene días; lanza si falla la lectura. */
-export async function fetchRutina(userId: string): Promise<Rutina | null> {
-  const [daysSnap, userSnap] = await Promise.all([getDocs(collection(db, COL.plans, userId, 'days')), getDoc(doc(db, COL.users, userId))])
-  const days = daysSnap.docs.map((d) => ({ ...(d.data() as Omit<DayDoc, 'id'>), id: d.id }))
-  const user = userSnap.data() as { rutina?: { nombre?: string; version?: number }; exercisePrefs?: Record<string, ExercisePref> } | undefined
-  const rutina = mapRutina(rutinaFromFirestore(days, user?.rutina, user?.exercisePrefs))
+/** Baja el plan del estudiante (días + el último peso que usó en cada ejercicio). `null` = no tiene días. */
+export async function fetchRutina(sid: string): Promise<Rutina | null> {
+  const [days, student] = await Promise.all([store.list(`${COL.students}/${sid}/days`), store.get(`${COL.students}/${sid}`)])
+  const s = student as { rutina?: RutinaMeta; exercisePrefs?: Record<string, ExercisePref> } | null
+  const rutina = mapRutina(rutinaFromDocs(days.map((d) => ({ ...(d.data as Omit<DayDoc, 'id'>), id: d.id })), s?.rutina, s?.exercisePrefs))
   return rutina.days.length ? rutina : null
 }
 
 export interface RutinaState {
   rutina: Rutina | null
-  /** Todavía no se sabe si hay rutina (primera vez y sin guardada). */
+  /** Todavía no se sabe si hay plan (primera vez y sin guardado). */
   loading: boolean
 }
 
 /**
- * La rutina guardada en el teléfono aparece al instante y funciona sin señal.
- * Al abrir, si hay conexión, se baja la publicada y reemplaza a la guardada.
+ * El plan guardado en el teléfono aparece al instante y funciona sin señal.
+ * Al abrir, si hay conexión, se baja el publicado y reemplaza al guardado.
  */
-export function useRutina(userId: string | null): RutinaState {
+export function useRutina(sid: string | null): RutinaState {
   const [state, setState] = useState<RutinaState>(() => {
-    const cached = userId ? readCache(userId) : null
-    return { rutina: cached, loading: !!userId && cached === null }
+    const cached = sid ? readCache(sid) : null
+    return { rutina: cached, loading: !!sid && cached === null }
   })
 
-  // La sesión de Firebase aparece después del primer render: al cambiar de usuario, se arranca de su caché.
-  const [forUser, setForUser] = useState(userId)
-  if (forUser !== userId) {
-    setForUser(userId)
-    const cached = userId ? readCache(userId) : null
-    setState({ rutina: cached, loading: !!userId && cached === null })
+  // La sesión aparece después del primer render: al cambiar de estudiante, se arranca de su caché.
+  const [forSid, setForSid] = useState(sid)
+  if (forSid !== sid) {
+    setForSid(sid)
+    const cached = sid ? readCache(sid) : null
+    setState({ rutina: cached, loading: !!sid && cached === null })
   }
 
   useEffect(() => {
-    if (!userId) return
+    if (!sid) return
     let cancelled = false
-    fetchRutina(userId)
+    fetchRutina(sid)
       .then((rutina) => {
-        writeCache(userId, rutina)
+        writeCache(sid, rutina)
         if (!cancelled) setState({ rutina, loading: false })
       })
       .catch(() => {
-        // Sin conexión: nos quedamos con lo que hay guardado.
+        // Sin conexión: nos quedamos con lo guardado.
         if (!cancelled) setState((s) => ({ ...s, loading: false }))
       })
     return () => {
       cancelled = true
     }
-  }, [userId])
+  }, [sid])
 
   return state
 }

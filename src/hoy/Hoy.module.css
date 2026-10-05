@@ -89,7 +89,7 @@
   color: var(--bg);
 }
 .seg[data-tone='mid'] {
-  background: #d6cfc1;
+  background: var(--track);
 }
 
 .list {
@@ -169,4 +169,10 @@
 .dayPill[aria-checked='true'] {
   background: var(--ink);
   color: var(--bg);
+}
+
+.hasNote {
+  margin-right: 6px;
+  vertical-align: -2px;
+  color: var(--accent-ink);
 }

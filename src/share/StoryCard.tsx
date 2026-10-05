@@ -1,5 +1,6 @@
 import { forwardRef } from 'react'
 import type { StoryData } from './story'
+import { Logo } from '../ui/Logo'
 import styles from './StoryCard.module.css'
 
 export const STORY_WIDTH = 1080
@@ -7,7 +8,7 @@ export const STORY_HEIGHT = 1920
 
 /**
  * Historia de Instagram (Historia.dc.html), 1080×1920. Se dibuja fuera de pantalla y se saca como imagen.
- * Sin récords nuevos, el bloque lima muestra las series completas en su lugar.
+ * Sin récords nuevos, el bloque rojo muestra las series completas en su lugar.
  */
 export const StoryCard = forwardRef<HTMLDivElement, { data: StoryData }>(function StoryCard({ data }, ref) {
   return (
@@ -15,8 +16,7 @@ export const StoryCard = forwardRef<HTMLDivElement, { data: StoryData }>(functio
       <div className={styles.top}>
         <div className={styles.header}>
           <div>
-            <div className={styles.logo}>653</div>
-            <div className={styles.gym}>GYM &amp; FITNESS</div>
+            <Logo size="lg" />
           </div>
           <div className={styles.date}>
             {data.weekday}

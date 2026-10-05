@@ -24,6 +24,9 @@ export interface EBloque {
   /** Bloques por tiempo: "Calentamiento", "Final" e indicación. Se conservan aunque el editor no los muestre. */
   subtitulo?: string | null
   indicacion?: string | null
+  /** Indicación del profe y video de YouTube (cualquier tipo de bloque). */
+  comentario?: string
+  videoUrl?: string
 }
 
 export interface EDia {
@@ -54,6 +57,8 @@ export function newBloque(tipo: Tipo, patch: Partial<EBloque> = {}): EBloque {
     minutos: tipo === 'tiempo' ? 5 : 0,
     rondas: tipo === 'circuito' ? 3 : 0,
     pasos: tipo === 'circuito' ? [{ nombre: 'Plancha frontal', segundos: 30 }] : [],
+    comentario: '',
+    videoUrl: '',
   }
   return { ...base, ...patch }
 }
@@ -144,6 +149,8 @@ export function toRows(r: ERutina): { dias: DiaWrite[]; bloques: BloqueWrite[] }
       pasos: b.tipo === 'circuito' ? b.pasos.map((p) => (p.segundos ? { nombre: p.nombre, segundos: p.segundos } : { nombre: p.nombre, reps: p.reps ?? 10 })) : null,
       subtitulo: b.tipo === 'tiempo' ? (b.subtitulo ?? null) : null,
       indicacion: b.tipo === 'tiempo' ? (b.indicacion ?? null) : null,
+      comentario: b.comentario?.trim() || null,
+      video_url: b.videoUrl?.trim() || null,
     })),
   )
   return { dias, bloques }
@@ -190,6 +197,8 @@ export function fromRow(row: {
             pasos: (b.pasos ?? []).map((p) => (p.segundos ? { nombre: p.nombre, segundos: p.segundos } : { nombre: p.nombre, reps: p.reps ?? 10 })),
             subtitulo: b.subtitulo ?? null,
             indicacion: b.indicacion ?? null,
+            comentario: b.comentario ?? '',
+            videoUrl: b.video_url ?? '',
           })),
       })),
   }

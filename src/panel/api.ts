@@ -1,338 +1,350 @@
-import { deleteApp, initializeApp } from 'firebase/app'
-import { createUserWithEmailAndPassword, deleteUser, getAuth, signInWithEmailAndPassword, signOut, updatePassword } from 'firebase/auth'
-import {
-  collection,
-  deleteDoc,
-  doc,
-  getDoc,
-  getDocs,
-  increment,
-  limit,
-  orderBy,
-  query,
-  setDoc,
-  updateDoc,
-  where,
-  writeBatch,
-} from 'firebase/firestore'
-import { COL, db, firebaseConfig, slugify, usernameToEmail } from '../firebase'
-import { rutinaFromFirestore, type DayDoc, type LegacyExercise } from '../rutina/firestoreRutina'
+import { authApi, store } from '../backend'
+import { AuthError, type WriteOp } from '../backend/types'
+import { emailFor, nextFreeUsername, usernameFrom } from '../cuentas'
+import { estadoCuota, type CuotaConfig, type EstadoCuota, type Pago } from '../cuotas'
+import type { SerieRow } from '../db'
+import { COL } from '../firebase'
+import { slugify } from '../keys'
+import { fromRow, type ERutina } from '../rutina/editor'
+import { rutinaFromDocs, toDayDocs, type DayDoc, type ExercisePref, type RutinaMeta } from '../rutina/firestoreRutina'
 import type { RemoteEntreno } from '../syncFormat'
 import { uuid } from '../uuid'
-import { fromRow, toRows, type ERutina } from './editor'
-import type { SocioEntreno, SocioProfile, SocioRutina } from './listado'
+import { BASE_EJERCICIOS } from './biblioteca'
 
-/** Ficha del socio en `gymUsers/{uid}` (la misma de la app anterior). */
-export interface SocioDoc {
-  role: 'client' | 'admin'
-  firstName: string
-  lastName: string
-  username?: string
-  dni?: string
-  phone?: string
-  coachName?: string
-  planType?: string
-  feeStatus?: 'ok' | 'overdue'
-  feeDueDate?: string
-  rutina?: { nombre?: string; version?: number; publicadaAt?: number }
+/* ───────── Tipos ───────── */
+
+/** Ficha `g653Students/{sid}`. */
+export interface StudentDoc {
+  nombre: string
+  apellido: string
+  username: string
+  /** Cuenta interna con la que entra hoy (cambia cuando el profe resetea la contraseña). */
+  uid: string
+  email: string
+  telefono: string
+  objetivo: string
+  createdAt: number
+  ultimoAcceso?: number
+  rutina: RutinaMeta | null
+  cuota: CuotaConfig
+  exercisePrefs?: Record<string, ExercisePref>
 }
 
-const days = (uid: string) => collection(db, COL.plans, uid, 'days')
-const logs = (uid: string) => collection(db, COL.sessions, uid, 'logs')
-
-interface LogDoc extends Partial<Omit<RemoteEntreno, 'v' | 'exercises'>> {
-  v?: number
-  date?: string
-  dayId?: string
-  startedAt?: number
-  exercises?: { sets?: unknown[] }[]
+export interface Estudiante extends StudentDoc {
+  id: string
 }
 
-/** Cuándo empezó ese entreno; `null` si es un día que la app anterior abrió pero no se hizo nada. */
-function trainedAt(d: LogDoc): number | null {
-  if (d.v === 2) return d.empezadoAt ?? null
-  const any = (d.exercises ?? []).some((e) => (e.sets?.length ?? 0) > 0)
-  if (!any) return null
-  return d.startedAt ?? (d.date ? new Date(`${d.date}T12:00:00`).getTime() : null)
-}
-
-const fullName = (s: SocioDoc) => `${s.firstName ?? ''} ${s.lastName ?? ''}`.trim()
-
-export interface SocioExtra {
-  phone: string
-  dni: string
-  coachName: string
-  feeOk: boolean
-  feeDueDate: string
-}
-
-export async function loadSocios(_profeId: string) {
-  void _profeId
-  const snap = await getDocs(query(collection(db, COL.users), where('role', '==', 'client')))
-  const socios = snap.docs.map((d) => ({ id: d.id, ...(d.data() as SocioDoc) }))
-
-  const perSocio = await Promise.all(
-    socios.map(async (s) => {
-      const [dSnap, lSnap] = await Promise.all([getDocs(days(s.id)), getDocs(query(logs(s.id), orderBy('date', 'desc'), limit(60)))])
-      const dayDocs = dSnap.docs.map((d) => ({ ...(d.data() as DayDoc), id: d.id }))
-      const conBloques = rutinaFromFirestore(dayDocs, s.rutina, undefined).dias.filter((d) => d.bloques.some((b) => b.tipo !== 'tiempo'))
-      const rutina: SocioRutina | null = conBloques.length
-        ? {
-            socio_id: s.id,
-            nombre: s.rutina?.nombre || 'Rutina',
-            dias_por_semana: conBloques.length,
-            publicada_at: new Date(s.rutina?.publicadaAt ?? 0).toISOString(),
-            creado_at: new Date(0).toISOString(),
-          }
-        : null
-      const entrenos: SocioEntreno[] = lSnap.docs
-        .map((d) => trainedAt(d.data() as LogDoc))
-        .filter((t): t is number => t !== null)
-        .map((t) => ({ socio_id: s.id, empezado_at: new Date(t).toISOString() }))
-      return { rutina, entrenos }
-    }),
-  )
-
-  const profiles: (SocioProfile & SocioExtra)[] = socios
-    .map((s) => ({
-      id: s.id,
-      nombre: fullName(s),
-      email: s.phone ? `Tel. ${s.phone}` : `DNI ${s.dni ?? '—'}`,
-      phone: s.phone ?? '',
-      dni: s.dni ?? '',
-      coachName: s.coachName ?? '',
-      feeOk: (s.feeStatus ?? 'ok') === 'ok',
-      feeDueDate: s.feeDueDate ?? '',
-    }))
-    .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
-
-  return {
-    profiles,
-    rutinas: perSocio.map((p) => p.rutina).filter((r): r is SocioRutina => r !== null),
-    entrenos: perSocio.flatMap((p) => p.entrenos),
-  }
-}
-
-export interface EditorData {
-  socio: { id: string; nombre: string; email: string } | null
-  rutina: ERutina | null
-  publicada: boolean
-  version: number
-  lastAt: number | null
-}
-
-export async function loadEditor(socioId: string, _profeId: string): Promise<EditorData> {
-  void _profeId
-  const [uSnap, dSnap, lSnap] = await Promise.all([
-    getDoc(doc(db, COL.users, socioId)),
-    getDocs(days(socioId)),
-    getDocs(query(logs(socioId), orderBy('date', 'desc'), limit(30))),
-  ])
-  const socio = uSnap.exists() ? (uSnap.data() as SocioDoc) : null
-  const dayDocs = dSnap.docs.map((d) => ({ ...(d.data() as DayDoc), id: d.id }))
-  const row = rutinaFromFirestore(dayDocs, socio?.rutina, undefined)
-  const last = lSnap.docs.map((d) => trainedAt(d.data() as LogDoc)).filter((t): t is number => t !== null)
-  return {
-    socio: socio ? { id: socioId, nombre: fullName(socio), email: socio.phone ? `Tel. ${socio.phone}` : `DNI ${socio.dni ?? '—'}` } : null,
-    rutina: row.dias.length ? { ...fromRow(row), nombre: socio?.rutina?.nombre || 'Rutina' } : null,
-    publicada: row.dias.length > 0,
-    version: socio?.rutina?.version ?? 0,
-    lastAt: last.length ? Math.max(...last) : null,
-  }
-}
-
-/** Crea una rutina con el Día A vacío para un socio que todavía no tiene días. */
-export async function createRutina(socioId: string, _profeId: string): Promise<ERutina> {
-  void _profeId
-  const id = uuid()
-  await setDoc(doc(days(socioId), id), { letra: 'A', label: 'Día A', order: 1, bloques: [], updatedAt: Date.now() })
-  return { id: 'rutina', nombre: 'Rutina', dias: [{ id, letra: 'A', bloques: [] }] }
-}
-
-/** Para que la app anterior siga mostrando la rutina mientras conviven: los bloques de fuerza como su grupo "fuerza". */
-function legacyFields(bloques: ReturnType<typeof toRows>['bloques']) {
-  const fuerza: LegacyExercise[] = bloques
-    .filter((b) => b.tipo === 'fuerza')
-    .map((b, i) => ({ id: b.id, name: b.nombre, sets: b.series ?? 3, reps: b.reps ?? 10, restSeconds: b.descanso_s ?? 90, order: i + 1 }))
-  const first = bloques[0]
-  const lastB = bloques[bloques.length - 1]
-  return {
-    groups: { core: [], fuerza },
-    warmupMinutes: first?.tipo === 'tiempo' ? (first.minutos ?? 0) : 0,
-    cooldownMinutes: lastB && lastB !== first && lastB.tipo === 'tiempo' ? (lastB.minutos ?? 0) : 0,
-  }
-}
-
-/**
- * Guarda y publica: cada día se escribe entero (con los mismos ids, así el historial sigue apuntando
- * a los mismos bloques), se borran los días quitados y sube la `version`. El socio la toma al abrir la app.
- */
-export async function saveAndPublish(socioId: string, rutina: ERutina, saved: ERutina | null, version: number): Promise<number> {
-  const { dias, bloques } = toRows(rutina)
-  const batch = writeBatch(db)
-  for (const d of dias) {
-    const own = bloques.filter((b) => b.dia_id === d.id).map(({ dia_id: _dia, ...b }) => {
-      void _dia
-      return b
-    })
-    batch.set(doc(days(socioId), d.id), {
-      letra: d.letra,
-      label: `Día ${d.letra}`,
-      order: d.orden,
-      bloques: own,
-      ...legacyFields(bloques.filter((b) => b.dia_id === d.id)),
-      updatedAt: Date.now(),
-    })
-  }
-  const keep = new Set(dias.map((d) => d.id))
-  for (const d of saved?.dias ?? []) if (!keep.has(d.id)) batch.delete(doc(days(socioId), d.id))
-  // Días que existían en el servidor pero no estaban en lo que se cargó (p. ej. vacíos de la app anterior).
-  const server = await getDocs(days(socioId))
-  for (const d of server.docs) if (!keep.has(d.id)) batch.delete(d.ref)
-
-  const next = version + 1
-  batch.set(doc(db, COL.users, socioId), { rutina: { nombre: rutina.nombre.trim() || 'Rutina', version: next, publicadaAt: Date.now() } }, { merge: true })
-  await batch.commit()
-
-  // Biblioteca compartida: cada ejercicio de fuerza queda para la próxima rutina.
-  await Promise.all(
-    bloques
-      .filter((b) => b.tipo === 'fuerza' && b.nombre.trim())
-      .map((b) =>
-        setDoc(
-          doc(db, COL.library, b.ejercicio_id || slugify(b.nombre)),
-          { name: b.nombre.trim(), defaultSets: b.series, defaultReps: b.reps, defaultRestSeconds: b.descanso_s, useCount: increment(1), updatedAt: Date.now() },
-          { merge: true },
-        ).catch(() => {}),
-      ),
-  )
-  return next
+export interface Medida {
+  id: string
+  fecha: string
+  pesoKg: number | null
+  grasaPct: number | null
+  cinturaCm: number | null
+  nota: string
+  createdAt: number
 }
 
 export interface Ejercicio {
   id: string
   nombre: string
   grupo: string | null
-  equipo: string | null
+  video: string
 }
 
-export async function loadEjercicios(): Promise<Ejercicio[]> {
-  const snap = await getDocs(query(collection(db, COL.library), orderBy('useCount', 'desc'), limit(300)))
-  return snap.docs
-    .map((d) => ({ id: d.id, nombre: (d.data().name as string) ?? d.id, grupo: null, equipo: null }))
-    .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
+export interface Resumen {
+  e: Estudiante
+  /** Cuándo empezó cada entreno (los últimos 60). */
+  entrenos: number[]
+  pagos: Pago[]
+  cuota: EstadoCuota
 }
 
-export interface UltimaVez {
-  completo: boolean
-  /** La serie más dura que anotó (esfuerzo 4–5), si hubo. */
-  dura: { bloqueId: string | null; serie: number; esfuerzo: number } | null
+const sPath = (sid: string) => `${COL.students}/${sid}`
+const sub = (sid: string, name: 'days' | 'logs' | 'pagos' | 'medidas') => `${sPath(sid)}/${name}`
+
+const asStudent = (id: string, d: Record<string, unknown>): Estudiante => ({ id, ...(d as unknown as StudentDoc) })
+const asPago = (id: string, d: Record<string, unknown>): Pago => ({ id, ...(d as unknown as Omit<Pago, 'id'>) })
+const asMedida = (id: string, d: Record<string, unknown>): Medida => ({ id, ...(d as unknown as Omit<Medida, 'id'>) })
+
+export const fullName = (e: Pick<StudentDoc, 'nombre' | 'apellido'>) => `${e.nombre} ${e.apellido}`.trim()
+
+/* ───────── Lectura ───────── */
+
+export async function loadEstudiantes(now = Date.now()): Promise<Resumen[]> {
+  const docs = (await store.list(COL.students)).filter((d) => !esFichaProfe(d.id))
+  const out = await Promise.all(
+    docs.map(async (d) => {
+      const e = asStudent(d.id, d.data)
+      const [logs, pagos] = await Promise.all([store.list(sub(e.id, 'logs'), { orderBy: ['empezadoAt', 'desc'], limit: 60 }), store.list(sub(e.id, 'pagos'))])
+      const ps = pagos.map((p) => asPago(p.id, p.data))
+      return {
+        e,
+        entrenos: logs.map((l) => Number(l.data.empezadoAt)).filter(Boolean),
+        pagos: ps,
+        cuota: estadoCuota(e.cuota, ps, e.createdAt, now),
+      }
+    }),
+  )
+  return out.sort((a, b) => fullName(a.e).localeCompare(fullName(b.e), 'es'))
 }
 
-export async function loadUltimaVez(socioId: string, diaId: string): Promise<UltimaVez | null> {
-  const snap = await getDocs(query(logs(socioId), orderBy('date', 'desc'), limit(40)))
-  const last = snap.docs.map((d) => d.data() as LogDoc).find((d) => d.dayId === diaId && trainedAt(d) !== null)
-  if (!last) return null
-  if (last.v !== 2) {
-    const ex = last.exercises ?? []
-    return { completo: ex.every((e) => (e.sets?.length ?? 0) >= ((e as { targetSets?: number }).targetSets ?? 0)), dura: null }
-  }
-  const hard = (last.series ?? []).filter((s) => (s.esfuerzo ?? 0) >= 4).sort((a, b) => (b.esfuerzo ?? 0) - (a.esfuerzo ?? 0))[0]
+export interface Detalle {
+  e: Estudiante
+  rutina: ERutina | null
+  entrenos: RemoteEntreno[]
+  pagos: Pago[]
+  medidas: Medida[]
+}
+
+export async function loadEstudiante(sid: string): Promise<Detalle | null> {
+  const [doc, days, logs, pagos, medidas] = await Promise.all([
+    store.get(sPath(sid)),
+    store.list(sub(sid, 'days')),
+    store.list(sub(sid, 'logs'), { orderBy: ['empezadoAt', 'desc'], limit: 300 }),
+    store.list(sub(sid, 'pagos')),
+    store.list(sub(sid, 'medidas')),
+  ])
+  if (!doc) return null
+  const e = asStudent(sid, doc)
+  const dayDocs = days.map((d) => ({ ...(d.data as Omit<DayDoc, 'id'>), id: d.id }))
+  // Sin las preferencias: el profe edita lo que él cargó, no el último peso del estudiante.
+  const row = rutinaFromDocs(dayDocs, e.rutina)
   return {
-    completo: last.estado === 'completo',
-    dura: hard ? { bloqueId: hard.bloqueId, serie: hard.serieN, esfuerzo: hard.esfuerzo ?? 0 } : null,
+    e,
+    rutina: row.dias.length ? { ...fromRow(row), nombre: e.rutina?.nombre || 'Plan' } : null,
+    entrenos: logs.map((l) => l.data as unknown as RemoteEntreno).filter((l) => l.v === 2),
+    pagos: pagos.map((p) => asPago(p.id, p.data)).sort((a, b) => b.periodo.localeCompare(a.periodo) || b.createdAt - a.createdAt),
+    medidas: medidas.map((m) => asMedida(m.id, m.data)).sort((a, b) => a.fecha.localeCompare(b.fecha)),
   }
 }
 
-/* ───────── Cuentas de socios (sin servidor propio: se usa una segunda instancia de Firebase) ───────── */
-
-async function withSecondary<T>(fn: (auth: ReturnType<typeof getAuth>) => Promise<T>): Promise<T> {
-  const app = initializeApp(firebaseConfig, `secundaria-${Date.now()}`)
-  const auth = getAuth(app)
-  try {
-    return await fn(auth)
-  } finally {
-    await signOut(auth).catch(() => {})
-    await deleteApp(app)
-  }
+/** Series de todos sus entrenos, en la forma que usan las estadísticas de Progreso. */
+export function seriesOf(entrenos: RemoteEntreno[]): SerieRow[] {
+  return entrenos.flatMap((e) => (e.series ?? []).map((s) => ({ ...s, entrenoId: e.id })))
 }
+
+/* ───────── Cuentas ───────── */
+
+/** Crea una cuenta interna libre para el usuario: juan.perez@…, y si ya está usada, juan.perez+2@… y así. */
+async function crearCuenta(username: string, clave: string, desde = 1): Promise<{ uid: string; email: string }> {
+  for (let n = desde; n < desde + 30; n++) {
+    const email = emailFor(username, n)
+    try {
+      return { uid: await authApi.createAccount(email, clave), email }
+    } catch (e) {
+      if (e instanceof AuthError && e.code === 'existe') continue
+      throw e
+    }
+  }
+  throw new AuthError('otro')
+}
+
+/** Número de cuenta interna de un email (juan.perez+3@… → 3). */
+const numeroDe = (email: string) => Number(/\+(\d+)@/.exec(email)?.[1] ?? 1)
 
 export interface AltaDatos {
   nombre: string
   apellido: string
-  dni: string
   telefono: string
-  profe: string
+  objetivo: string
+  cuota: CuotaConfig
+  clave: string
 }
 
-/** Crea la cuenta del socio (usuario = nombre y apellido, contraseña = DNI) sin cerrar la sesión del profe. */
-export async function altaSocio(d: AltaDatos): Promise<void> {
-  const username = `${d.nombre.trim()} ${d.apellido.trim()}`
-  const dni = d.dni.replace(/\D/g, '')
-  if (dni.length < 6) throw new Error('El DNI tiene que tener al menos 6 números.')
-  await withSecondary(async (auth) => {
-    let uid: string
-    try {
-      uid = (await createUserWithEmailAndPassword(auth, usernameToEmail(username), dni)).user.uid
-    } catch (e) {
-      if ((e as { code?: string }).code?.includes('email-already-in-use')) throw new Error('Ya hay un socio con ese nombre y apellido.')
-      throw new Error('No pudimos crear la cuenta. Probá de nuevo.')
+export async function altaEstudiante(d: AltaDatos): Promise<{ sid: string; username: string }> {
+  const base = usernameFrom(d.nombre, d.apellido)
+  if (!base) throw new Error('Falta el nombre.')
+  // Usuarios ya tomados (pocos estudiantes: se pregunta de a uno).
+  const taken = new Set<string>()
+  for (let u = base, n = 2; ; u = `${base}${n++}`) {
+    if (!(await store.get(`${COL.logins}/${u}`))) break
+    taken.add(u)
+  }
+  const username = nextFreeUsername(base, (u) => taken.has(u))
+  const { uid, email } = await crearCuenta(username, d.clave)
+  const sid = uuid()
+  const ficha: StudentDoc = {
+    nombre: d.nombre.trim(),
+    apellido: d.apellido.trim(),
+    username,
+    uid,
+    email,
+    telefono: d.telefono.trim(),
+    objetivo: d.objetivo.trim(),
+    createdAt: Date.now(),
+    rutina: null,
+    cuota: d.cuota,
+  }
+  await store.write([
+    { type: 'set', path: sPath(sid), data: { ...ficha } },
+    { type: 'set', path: `${COL.logins}/${username}`, data: { email, sid, rol: 'estudiante' } },
+  ])
+  return { sid, username }
+}
+
+/**
+ * Contraseña nueva: sin servidor no se puede cambiar la de otra cuenta, así que se crea una cuenta interna
+ * nueva y el usuario pasa a entrar con esa. Su ficha, plan e historial no se tocan.
+ */
+export async function resetClave(e: Estudiante, clave: string): Promise<void> {
+  const { uid, email } = await crearCuenta(e.username, clave, numeroDe(e.email) + 1)
+  await store.write([
+    { type: 'update', path: sPath(e.id), data: { uid, email } },
+    { type: 'set', path: `${COL.logins}/${e.username}`, data: { email, sid: e.id, rol: 'estudiante' } },
+  ])
+}
+
+export async function updateFicha(sid: string, patch: Pick<StudentDoc, 'nombre' | 'apellido' | 'telefono' | 'objetivo'>) {
+  await store.write([{ type: 'update', path: sPath(sid), data: { nombre: patch.nombre.trim(), apellido: patch.apellido.trim(), telefono: patch.telefono.trim(), objetivo: patch.objetivo.trim() } }])
+}
+
+/** Borra todo del estudiante. Su cuenta interna queda sin acceso (sin servidor no se puede borrar). */
+export async function bajaEstudiante(e: Estudiante): Promise<void> {
+  const subs = await Promise.all((['days', 'logs', 'pagos', 'medidas'] as const).map((n) => store.list(sub(e.id, n)).then((docs) => docs.map((d) => `${sub(e.id, n)}/${d.id}`))))
+  const ops: WriteOp[] = subs.flat().map((path) => ({ type: 'delete', path }))
+  ops.push({ type: 'delete', path: sPath(e.id) }, { type: 'delete', path: `${COL.logins}/${e.username}` })
+  await store.write(ops)
+}
+
+/* ───────── Plan ───────── */
+
+export function planVacio(): ERutina {
+  return { id: 'rutina', nombre: 'Plan', dias: [{ id: uuid(), letra: 'A', bloques: [] }] }
+}
+
+/**
+ * Guarda y publica: cada día se escribe entero (con los mismos ids, así el historial sigue apuntando a los
+ * mismos bloques), se borran los días quitados y sube la versión. El estudiante lo ve al abrir la app.
+ */
+export async function publicarPlan(sid: string, rutina: ERutina, version: number): Promise<number> {
+  const now = Date.now()
+  const docs = toDayDocs(rutina, now)
+  const keep = new Set(docs.map((d) => d.id))
+  const server = await store.list(sub(sid, 'days'))
+  const next = version + 1
+  const ops: WriteOp[] = docs.map(({ id, ...data }) => ({ type: 'set', path: `${sub(sid, 'days')}/${id}`, data }))
+  for (const d of server) if (!keep.has(d.id)) ops.push({ type: 'delete', path: `${sub(sid, 'days')}/${d.id}` })
+  ops.push({ type: 'update', path: sPath(sid), data: { rutina: { nombre: rutina.nombre.trim() || 'Plan', version: next, publicadaAt: now, dias: docs.length } } })
+  await store.write(ops)
+
+  // Biblioteca: cada ejercicio de fuerza queda (con su video) para el próximo plan.
+  const lib: WriteOp[] = rutina.dias
+    .flatMap((d) => d.bloques)
+    .filter((b) => b.tipo === 'fuerza' && b.nombre.trim())
+    .map((b) => ({
+      type: 'set',
+      path: `${COL.exercises}/${b.ejercicioId || slugify(b.nombre)}`,
+      data: { nombre: b.nombre.trim(), ...(b.videoUrl?.trim() ? { video: b.videoUrl.trim() } : {}), updatedAt: now },
+      merge: true,
+    }))
+  if (lib.length) await store.write(lib).catch(() => {})
+  return next
+}
+
+/* ───────── Biblioteca ───────── */
+
+export const GRUPOS = ['Piernas', 'Glúteos', 'Pecho', 'Espalda', 'Hombros', 'Brazos', 'Core', 'Cardio', 'Movilidad']
+
+export async function loadEjercicios(): Promise<Ejercicio[]> {
+  const docs = await store.list(COL.exercises)
+  const byId = new Map<string, Ejercicio>(BASE_EJERCICIOS.map((e) => [e.id, { ...e, video: '' }]))
+  for (const d of docs) {
+    // Los de base no se pueden borrar del código: al eliminarlos quedan marcados como ocultos.
+    if (d.data.oculto) {
+      byId.delete(d.id)
+      continue
     }
-    await setDoc(doc(db, COL.users, uid), {
-      role: 'client',
-      firstName: d.nombre.trim(),
-      lastName: d.apellido.trim(),
-      username,
-      dni,
-      phone: d.telefono.trim(),
-      coachName: d.profe.trim(),
-      planType: 'weekly',
-      weeklyDays: [],
-      sessionTime: '18:30',
-      feeStatus: 'ok',
-      notifPrefs: { restEnd: true, gymReminder: true, feeReminder: false },
+    const prev = byId.get(d.id)
+    byId.set(d.id, { id: d.id, nombre: String(d.data.nombre ?? prev?.nombre ?? d.id), grupo: (d.data.grupo as string) ?? prev?.grupo ?? null, video: String(d.data.video ?? '') })
+  }
+  return [...byId.values()].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
+}
+
+/**
+ * Crea o edita un ejercicio. Al renombrarlo se conserva el id (la clave del historial); los planes ya
+ * armados guardan su propia copia del nombre, así que no cambian.
+ */
+export async function guardarEjercicio(e: { nombre: string; grupo: string | null; video: string }, id = slugify(e.nombre)): Promise<string> {
+  await store.write([
+    { type: 'set', path: `${COL.exercises}/${id}`, data: { nombre: e.nombre.trim(), grupo: e.grupo?.trim() || null, video: e.video.trim(), oculto: false, updatedAt: Date.now() }, merge: true },
+  ])
+  return id
+}
+
+/** Lo saca de la biblioteca. Los planes que ya lo usan no cambian. */
+export async function eliminarEjercicio(id: string): Promise<void> {
+  await store.write([{ type: 'set', path: `${COL.exercises}/${id}`, data: { oculto: true, updatedAt: Date.now() }, merge: true }])
+}
+
+/* ───────── El profe ───────── */
+
+/** La rutina propia del profe vive en una ficha como la de un estudiante, con id fijo. */
+export const fichaProfeId = (uid: string) => `yo-${uid}`
+export const esFichaProfe = (sid: string) => sid.startsWith('yo-')
+
+/** Crea la ficha propia del profe si todavía no existe y devuelve su id. */
+export async function asegurarFichaProfe(p: { id: string; nombre: string; apellido: string; username: string }): Promise<string> {
+  const sid = fichaProfeId(p.id)
+  const doc = await store.get(sPath(sid))
+  if (!doc || !doc.nombre) {
+    const ficha: StudentDoc = {
+      nombre: p.nombre,
+      apellido: p.apellido,
+      username: p.username,
+      uid: p.id,
+      email: '',
+      telefono: '',
+      objetivo: '',
       createdAt: Date.now(),
-    })
-  })
+      rutina: null,
+      cuota: { monto: 0, dia: 10 },
+    }
+    // merge: si ya entrenó antes de armar la ficha, conserva sus últimos pesos.
+    await store.write([{ type: 'set', path: sPath(sid), data: { ...ficha, ...(doc?.rutina ? { rutina: doc.rutina } : {}) }, merge: true }])
+  }
+  return sid
 }
 
-export async function updateFicha(socioId: string, patch: { phone: string; coachName: string; feeOk: boolean; feeDueDate: string }) {
-  await updateDoc(doc(db, COL.users, socioId), {
-    phone: patch.phone.trim(),
-    coachName: patch.coachName.trim(),
-    feeStatus: patch.feeOk ? 'ok' : 'overdue',
-    feeDueDate: patch.feeDueDate.trim(),
-  })
+/**
+ * Nombre y usuario del profe. El usuario nuevo apunta a la misma cuenta interna (no cambia la contraseña);
+ * el viejo deja de servir.
+ */
+export async function guardarCuentaProfe(actual: { id: string; username: string }, d: { nombre: string; apellido: string; username: string }): Promise<void> {
+  const username = d.username
+  const ops: WriteOp[] = []
+  if (username !== actual.username) {
+    if (await store.get(`${COL.logins}/${username}`)) throw new Error('Ese usuario ya lo usa un estudiante.')
+    const old = (await store.get(`${COL.logins}/${actual.username}`)) as { email?: string } | null
+    ops.push(
+      { type: 'set', path: `${COL.logins}/${username}`, data: { email: old?.email ?? emailFor(actual.username), rol: 'profe' } },
+      { type: 'delete', path: `${COL.logins}/${actual.username}` },
+    )
+  }
+  ops.push({ type: 'update', path: `${COL.config}/profe`, data: { nombre: d.nombre.trim(), apellido: d.apellido.trim(), username } })
+  if (await store.get(sPath(fichaProfeId(actual.id)))) ops.push({ type: 'update', path: sPath(fichaProfeId(actual.id)), data: { nombre: d.nombre.trim(), apellido: d.apellido.trim(), username } })
+  await store.write(ops)
 }
 
-async function socioDoc(socioId: string): Promise<SocioDoc> {
-  const snap = await getDoc(doc(db, COL.users, socioId))
-  if (!snap.exists()) throw new Error('No encontramos al socio.')
-  return snap.data() as SocioDoc
+/* ───────── Cuotas ───────── */
+
+export async function guardarCuota(sid: string, cuota: CuotaConfig) {
+  await store.write([{ type: 'update', path: sPath(sid), data: { cuota } }])
 }
 
-/** Cambia el DNI (la contraseña). Firebase pide la actual para hacerlo sin servidor propio. */
-export async function cambiarDni(socioId: string, nuevo: string): Promise<void> {
-  const dni = nuevo.replace(/\D/g, '')
-  if (dni.length < 6) throw new Error('El DNI tiene que tener al menos 6 números.')
-  const s = await socioDoc(socioId)
-  await withSecondary(async (auth) => {
-    const cred = await signInWithEmailAndPassword(auth, usernameToEmail(s.username || fullName(s)), s.dni ?? '')
-    await updatePassword(cred.user, dni)
-  })
-  await updateDoc(doc(db, COL.users, socioId), { dni })
+export async function registrarPago(sid: string, p: Omit<Pago, 'id' | 'createdAt'>): Promise<void> {
+  await store.write([{ type: 'set', path: `${sub(sid, 'pagos')}/${uuid()}`, data: { ...p, createdAt: Date.now() } }])
 }
 
-/** Borra todo del socio: rutina, historial, ficha y su cuenta. */
-export async function borrarSocio(socioId: string): Promise<void> {
-  const s = await socioDoc(socioId)
-  const [d, l] = await Promise.all([getDocs(days(socioId)), getDocs(logs(socioId))])
-  await Promise.all([...d.docs, ...l.docs].map((x) => deleteDoc(x.ref)))
-  await deleteDoc(doc(db, COL.users, socioId))
-  await withSecondary(async (auth) => {
-    const cred = await signInWithEmailAndPassword(auth, usernameToEmail(s.username || fullName(s)), s.dni ?? '')
-    await deleteUser(cred.user)
-  }).catch(() => {
-    /* si la contraseña no coincide, igual ya no quedan datos */
-  })
+export async function borrarPago(sid: string, id: string) {
+  await store.write([{ type: 'delete', path: `${sub(sid, 'pagos')}/${id}` }])
+}
+
+/* ───────── Medidas ───────── */
+
+export async function guardarMedida(sid: string, m: Omit<Medida, 'id' | 'createdAt'>): Promise<void> {
+  await store.write([{ type: 'set', path: `${sub(sid, 'medidas')}/${uuid()}`, data: { ...m, createdAt: Date.now() } }])
+}
+
+export async function borrarMedida(sid: string, id: string) {
+  await store.write([{ type: 'delete', path: `${sub(sid, 'medidas')}/${id}` }])
 }

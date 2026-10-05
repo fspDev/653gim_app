@@ -1,27 +1,26 @@
-import { collection, doc, getDocs, limit, orderBy, query, setDoc } from 'firebase/firestore'
+import { store } from './backend'
 import { db as local, type EntrenoRow, type SerieRow } from './db'
-import { COL, db, prefKey } from './firebase'
-import { fromLegacy, fromRemote, toRemote, type LegacySession, type RemoteEntreno } from './syncFormat'
+import { COL } from './firebase'
+import { prefKey } from './keys'
+import { fromRemote, toRemote, type RemoteEntreno } from './syncFormat'
 
-export type { RemoteEntreno } from './syncFormat'
-
-const logs = (uid: string) => collection(db, COL.sessions, uid, 'logs')
+const logs = (sid: string) => `${COL.students}/${sid}/logs`
 
 let pulling = false
 
 /** Baja el historial del servidor al teléfono (nunca pisa un entreno local que todavía no subió). */
-export async function pullHistory(userId: string): Promise<void> {
+export async function pullHistory(sid: string): Promise<void> {
   if (pulling || !navigator.onLine) return
   pulling = true
   try {
-    const snap = await getDocs(query(logs(userId), orderBy('date', 'desc'), limit(400)))
+    const docs = await store.list(logs(sid), { orderBy: ['empezadoAt', 'desc'], limit: 400 })
     const known = new Set(await local.entrenos.toCollection().primaryKeys())
     const entrenos: EntrenoRow[] = []
     const series: SerieRow[] = []
-    for (const d of snap.docs) {
-      const data = d.data()
-      const rows = data.v === 2 ? fromRemote(data as RemoteEntreno) : fromLegacy(d.id, data as LegacySession)
-      if (!rows || known.has(rows.entreno.id)) continue
+    for (const d of docs) {
+      const data = d.data as unknown as RemoteEntreno
+      if (data.v !== 2 || known.has(data.id)) continue
+      const rows = fromRemote(data)
       entrenos.push(rows.entreno)
       series.push(...rows.series)
     }
@@ -41,20 +40,22 @@ export async function pullHistory(userId: string): Promise<void> {
 let running = false
 
 /**
- * Sube los entrenos pendientes (los ids los generó el teléfono, así que reintentar no duplica) y guarda
- * el último peso de cada ejercicio como preferencia, igual que la app anterior.
+ * Sube los entrenos pendientes (reintentar no duplica: el id es el mismo) y guarda el último peso
+ * de cada ejercicio, para que el próximo entreno arranque desde ahí.
  */
-export async function syncPending(userId: string): Promise<void> {
+export async function syncPending(sid: string): Promise<void> {
   if (running || !navigator.onLine) return
   running = true
   try {
     const pending = await local.entrenos.where('synced').equals(0).toArray()
     for (const e of pending.sort((a, b) => a.empezadoAt - b.empezadoAt)) {
       const series = await local.series.where('entrenoId').equals(e.id).toArray()
-      await setDoc(doc(logs(userId), e.id), toRemote(e, series))
       const prefs: Record<string, { weight: number; updatedAt: number }> = {}
       for (const s of [...series].sort((a, b) => a.hechaAt - b.hechaAt)) prefs[prefKey(s.ejercicio)] = { weight: s.pesoKg, updatedAt: s.hechaAt }
-      if (Object.keys(prefs).length) await setDoc(doc(db, COL.users, userId), { exercisePrefs: prefs }, { merge: true })
+      await store.write([
+        { type: 'set', path: `${logs(sid)}/${e.id}`, data: toRemote(e, series) as unknown as Record<string, unknown> },
+        ...(Object.keys(prefs).length ? [{ type: 'set' as const, path: `${COL.students}/${sid}`, data: { exercisePrefs: prefs }, merge: true }] : []),
+      ])
       await local.entrenos.update(e.id, { synced: 1 })
     }
   } catch {

@@ -18,6 +18,10 @@ export interface BloqueRow {
   subtitulo?: string | null
   /** Solo bloques por tiempo: "Ritmo suave · 70–80 rpm". */
   indicacion?: string | null
+  /** Indicación del profe para este ejercicio ("bajá lento, 3 segundos"). */
+  comentario?: string | null
+  /** Video de YouTube con la técnica. */
+  video_url?: string | null
 }
 
 export interface DiaRow {
@@ -66,7 +70,14 @@ function minutesFor(row: BloqueRow): number {
 }
 
 export function mapBloque(row: BloqueRow): Block {
-  const base = { id: row.id, name: row.nombre, short: shortName(row.nombre), minutes: minutesFor(row) }
+  const base = {
+    id: row.id,
+    name: row.nombre,
+    short: shortName(row.nombre),
+    minutes: minutesFor(row),
+    note: row.comentario?.trim() || undefined,
+    video: row.video_url?.trim() || undefined,
+  }
   switch (row.tipo) {
     case 'fuerza':
       return {

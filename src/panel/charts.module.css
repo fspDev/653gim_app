@@ -1,0 +1,67 @@
+.figure {
+  position: relative;
+  margin: 0;
+}
+.svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+.grid {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+.baseline {
+  stroke: var(--track);
+  stroke-width: 1;
+}
+.axis {
+  fill: var(--muted);
+  font-size: 12px;
+  font-family: var(--font-body);
+}
+.line {
+  fill: none;
+  stroke: var(--accent-ink);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.dot {
+  fill: var(--accent-ink);
+  /* Anillo del color del fondo para separarse de la línea. */
+  stroke: var(--fill);
+  stroke-width: 2;
+}
+.cross {
+  stroke: var(--muted-2);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+.bar {
+  fill: var(--accent-ink);
+}
+.bar[data-active='true'] {
+  opacity: 0.8;
+}
+.tip {
+  position: absolute;
+  top: -6px;
+  translate: -50% -100%;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: var(--ink);
+  color: var(--bg);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+}

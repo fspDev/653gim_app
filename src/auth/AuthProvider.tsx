@@ -1,24 +1,15 @@
-import { onAuthStateChanged, signInWithEmailAndPassword, signOut as fbSignOut, type User } from 'firebase/auth'
-import { doc, getDoc } from 'firebase/firestore'
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { ADMIN_EMAIL, COL, auth, db, usernameToEmail } from '../firebase'
+import { authApi, store } from '../backend'
+import { AuthError, type AuthUser } from '../backend/types'
+import { emailFor, normalizeUsername, usernameFrom } from '../cuentas'
+import { db as local } from '../db'
+import { COL } from '../firebase'
 import { clearRutinaCache } from '../rutina/rutina'
 import { pullHistory, syncPending } from '../sync'
-import { AuthContext, type AuthValue, type LoginResult, type Profile } from './context'
+import { clearActive } from '../workout/persist'
+import { AuthContext, type AuthStatus, type AuthValue, type CrearProfeDatos, type LoginResult, type Profile } from './context'
 
-const PROFILE_KEY = '653:profile'
-
-// Solo en desarrollo (npm run dev con ?demo): sin cuenta, con la rutina de ejemplo, para probar la interfaz.
-const DEMO =
-  import.meta.env.DEV &&
-  (() => {
-    try {
-      if (new URLSearchParams(location.search).has('demo')) sessionStorage.setItem('653:demo', '1')
-      return sessionStorage.getItem('653:demo') === '1'
-    } catch {
-      return false
-    }
-  })()
+const PROFILE_KEY = 'g653:profile'
 const SYNC_EVERY_MS = 60_000
 
 function readProfile(): Profile | null {
@@ -39,62 +30,85 @@ function writeProfile(p: Profile | null) {
   }
 }
 
-interface UserDoc {
-  role?: 'client' | 'admin'
-  firstName?: string
-  lastName?: string
-  coachName?: string
+interface ProfeConfig {
+  uid: string
+  nombre: string
+  apellido?: string
+  username: string
 }
 
-async function fetchProfile(user: User): Promise<Profile | null> {
-  const snap = await getDoc(doc(db, COL.users, user.uid))
-  if (!snap.exists()) return null
-  const d = snap.data() as UserDoc
+export const PROFE_PATH = `${COL.config}/profe`
+
+/** De quién es esta cuenta: el profe, un estudiante, o nadie (`null`: cuenta vieja tras un reseteo). */
+async function resolveProfile(user: AuthUser): Promise<Profile | null> {
+  const profe = (await store.get(PROFE_PATH)) as ProfeConfig | null
+  if (profe?.uid === user.uid) {
+    return { id: user.uid, rol: 'profe', sid: `yo-${user.uid}`, nombre: profe.nombre, apellido: profe.apellido ?? '', username: profe.username, profeNombre: profe.nombre }
+  }
+  const [mine] = await store.list(COL.students, { where: ['uid', user.uid], limit: 1 })
+  if (!mine) return null
+  const d = mine.data as { nombre?: string; apellido?: string; username?: string }
   return {
     id: user.uid,
-    rol: d.role === 'admin' ? 'profe' : 'socio',
-    nombre: d.firstName || (d.role === 'admin' ? 'Profe' : ''),
-    apellido: d.lastName || '',
-    email: user.email ?? '',
-    profeId: null,
-    profeNombre: d.coachName || null,
-    profeEmail: null,
+    rol: 'estudiante',
+    sid: mine.id,
+    nombre: d.nombre ?? '',
+    apellido: d.apellido ?? '',
+    username: d.username ?? '',
+    profeNombre: profe?.nombre ?? null,
   }
 }
 
-function mapError(e: unknown): LoginResult {
-  const code = (e as { code?: string })?.code ?? ''
-  if (/invalid-credential|wrong-password|user-not-found|invalid-email/.test(code)) return { ok: false, reason: 'datos' }
-  if (code.includes('network')) return { ok: false, reason: 'red' }
-  if (code.includes('too-many-requests')) return { ok: false, reason: 'muchos' }
-  return { ok: false, reason: 'otro' }
-}
+const fail = (e: unknown): LoginResult => ({ ok: false, reason: e instanceof AuthError ? e.code : navigator.onLine ? 'otro' : 'red' })
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUser] = useState<AuthUser | null>(null)
   const [ready, setReady] = useState(false)
   const [profile, setProfile] = useState<Profile | null>(() => readProfile())
+  // La cuenta existe pero no tiene ficha: se sabe recién después de preguntarle al servidor.
+  const [orphan, setOrphan] = useState<string | null>(null)
+  const [profeConfigurado, setProfeConfigurado] = useState<boolean | null>(null)
+  // Sube cuando cambian los datos de la cuenta (el profe edita su nombre o usuario).
+  const [rev, setRev] = useState(0)
+  const refreshProfile = useCallback(() => setRev((n) => n + 1), [])
 
   useEffect(
     () =>
-      onAuthStateChanged(auth, (u) => {
+      authApi.onChange((u) => {
         setUser(u)
         setReady(true)
       }),
     [],
   )
 
-  const userId = user?.uid ?? null
+  // ¿Ya hay profe? Define si la pantalla de ingreso ofrece crear la cuenta del profe.
+  useEffect(() => {
+    if (user) return
+    let cancelled = false
+    store
+      .get(PROFE_PATH)
+      .then((d) => !cancelled && setProfeConfigurado(!!d))
+      .catch(() => !cancelled && setProfeConfigurado(null))
+    return () => {
+      cancelled = true
+    }
+  }, [user])
 
   // Perfil: se guarda local para poder abrir la app y entrenar sin señal.
   useEffect(() => {
     if (!user) return
     let cancelled = false
-    fetchProfile(user)
+    resolveProfile(user)
       .then((p) => {
-        if (cancelled || !p) return
+        if (cancelled) return
+        if (!p) {
+          setOrphan(user.uid)
+          return
+        }
+        setOrphan(null)
         setProfile(p)
         writeProfile(p)
+        if (p.rol === 'estudiante' && p.sid) void store.write([{ type: 'update', path: `${COL.students}/${p.sid}`, data: { ultimoAcceso: Date.now() } }]).catch(() => {})
       })
       .catch(() => {
         /* sin señal: queda el guardado */
@@ -102,59 +116,99 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true
     }
-  }, [user])
+  }, [user, rev])
+
+  const userId = user?.uid ?? null
+  const ownProfile = profile && profile.id === userId ? profile : null
+  const sid = ownProfile?.sid ?? null
 
   const syncNow = useCallback(() => {
-    if (userId) void syncPending(userId)
-  }, [userId])
+    if (sid) void syncPending(sid)
+  }, [sid])
 
-  const isSocio = profile?.rol === 'socio' && profile.id === userId
-
-  // El historial (también el de la app anterior) baja al entrar; lo nuevo sube en cola.
+  // El historial baja al entrar (también en un teléfono nuevo); lo nuevo sube en cola.
   useEffect(() => {
-    if (!userId || !isSocio) return
-    void pullHistory(userId).finally(syncNow)
+    if (!sid) return
+    void pullHistory(sid).finally(syncNow)
     window.addEventListener('online', syncNow)
     const id = setInterval(syncNow, SYNC_EVERY_MS)
     return () => {
       window.removeEventListener('online', syncNow)
       clearInterval(id)
     }
-  }, [userId, isSocio, syncNow])
+  }, [sid, syncNow])
 
-  const loginSocio = useCallback(async (nombre: string, dni: string): Promise<LoginResult> => {
+  const login = useCallback(async (usuario: string, clave: string): Promise<LoginResult> => {
+    const username = normalizeUsername(usuario)
+    if (!username || !clave) return { ok: false, reason: 'datos' }
     try {
-      await signInWithEmailAndPassword(auth, usernameToEmail(nombre), dni.trim().replace(/\./g, ''))
+      // Solo usuarios registrados: si el profe cambió su usuario, el viejo deja de servir.
+      const entry = (await store.get(`${COL.logins}/${username}`)) as { email?: string } | null
+      if (!entry?.email) return { ok: false, reason: 'datos' }
+      await authApi.signIn(entry.email, clave)
       return { ok: true }
     } catch (e) {
-      return mapError(e)
+      return fail(e)
     }
   }, [])
 
-  const loginProfe = useCallback(async (usuario: string, clave: string): Promise<LoginResult> => {
-    if (usuario.trim().toLowerCase() !== 'admin') return { ok: false, reason: 'datos' }
+  const crearProfe = useCallback(async (d: CrearProfeDatos): Promise<LoginResult> => {
+    const username = usernameFrom(d.nombre, d.apellido)
     try {
-      await signInWithEmailAndPassword(auth, ADMIN_EMAIL, clave)
+      if (await store.get(PROFE_PATH)) return { ok: false, reason: 'ya-hay-profe' }
+      const email = emailFor(username)
+      let u: AuthUser
+      try {
+        u = await authApi.signUp(email, d.clave)
+      } catch (e) {
+        // Si un intento anterior creó la cuenta pero no llegó a guardar la ficha.
+        if (e instanceof AuthError && e.code === 'existe') u = await authApi.signIn(email, d.clave)
+        else throw e
+      }
+      // Primero la ficha del profe: recién con ella las reglas lo dejan escribir el resto.
+      await store.write([{ type: 'set', path: PROFE_PATH, data: { uid: u.uid, nombre: d.nombre.trim(), apellido: d.apellido.trim(), username, createdAt: Date.now() } }])
+      await store.write([{ type: 'set', path: `${COL.logins}/${username}`, data: { email, rol: 'profe' } }])
+      setProfeConfigurado(true)
+      const p = await resolveProfile(u)
+      if (p) {
+        setProfile(p)
+        writeProfile(p)
+      }
       return { ok: true }
     } catch (e) {
-      return mapError(e)
+      return fail(e)
+    }
+  }, [])
+
+  const cambiarClave = useCallback(async (actual: string, nueva: string): Promise<LoginResult> => {
+    try {
+      await authApi.changePassword(actual, nueva)
+      return { ok: true }
+    } catch (e) {
+      return fail(e)
     }
   }, [])
 
   const signOut = useCallback(async () => {
-    await fbSignOut(auth)
+    await authApi.signOut()
     writeProfile(null)
     clearRutinaCache()
+    clearActive()
+    // El historial local es de esta persona: en un teléfono compartido no lo ve el siguiente.
+    await local.transaction('rw', local.entrenos, local.series, async () => {
+      await local.entrenos.clear()
+      await local.series.clear()
+    })
     setProfile(null)
+    setOrphan(null)
   }, [])
 
   const value = useMemo<AuthValue>(() => {
-    // Al cambiar de cuenta, el perfil guardado puede ser del usuario anterior por un instante.
-    const ownProfile = profile && profile.id === userId ? profile : null
-    if (DEMO) return { status: 'local', userId: null, profile: null, loginSocio, loginProfe, signOut, syncNow }
-    const status = !ready ? 'loading' : user ? 'in' : 'out'
-    return { status, userId, profile: status === 'in' ? ownProfile : null, loginSocio, loginProfe, signOut, syncNow }
-  }, [ready, user, userId, profile, loginSocio, loginProfe, signOut, syncNow])
+    let status: AuthStatus = !ready ? 'loading' : user ? 'in' : 'out'
+    if (status === 'in' && orphan === userId) status = 'sin-acceso'
+    else if (status === 'in' && !ownProfile) status = 'loading'
+    return { status, userId, profile: status === 'in' ? ownProfile : null, profeConfigurado, login, crearProfe, cambiarClave, signOut, syncNow, refreshProfile }
+  }, [ready, user, userId, orphan, ownProfile, profeConfigurado, login, crearProfe, cambiarClave, signOut, syncNow, refreshProfile])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

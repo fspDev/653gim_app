@@ -10,6 +10,7 @@ import { clearActive, loadActive } from '../workout/persist'
 import { startWorkout } from '../workout/start'
 import { isPiPSupported, openPiP } from '../pip/pipEngine'
 import { getSettings } from '../settings'
+import { Logo } from '../ui/Logo'
 import styles from './Hoy.module.css'
 import { SinRutina } from './SinRutina'
 import { SlideToStart } from './SlideToStart'
@@ -68,7 +69,7 @@ function HoyDia({ days, active }: { days: Day[]; active: ReturnType<typeof loadA
   return (
     <main className={styles.page}>
       <div className={styles.top}>
-        <div className={styles.logo}>653</div>
+        <Logo />
         {streak > 0 && (
           <div className={styles.streak}>
             <span className={styles.dot} />
@@ -107,7 +108,14 @@ function HoyDia({ days, active }: { days: Day[]; active: ReturnType<typeof loadA
           <li key={b.id} className={styles.row}>
             <span className={styles.n}>{i + 1}</span>
             <span className={styles.name}>{b.name}</span>
-            <span className={styles.detail}>{blockDetail(b)}</span>
+            <span className={styles.detail}>
+              {(b.note || b.video) && (
+                <svg className={styles.hasNote} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-label="Tiene indicación del profe">
+                  <path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z" />
+                </svg>
+              )}
+              {blockDetail(b)}
+            </span>
           </li>
         ))}
       </ol>

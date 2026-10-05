@@ -1,0 +1,80 @@
+.tiles {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+}
+.tile {
+  border-radius: 18px;
+  background: var(--fill);
+  padding: 14px 16px;
+}
+.tileValue {
+  font-family: var(--font-display);
+  font-size: 40px;
+  line-height: 1;
+}
+.tileLabel {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.exHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  margin-bottom: 18px;
+}
+.record {
+  font-size: 14px;
+  color: var(--muted);
+}
+.record strong {
+  color: var(--ink);
+}
+.medHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.medForm {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0 12px;
+}
+.chartTitle {
+  margin-bottom: 10px;
+  font-weight: 700;
+  font-size: 14px;
+}
+.tableWrap {
+  margin-top: 10px;
+  overflow-x: auto;
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  min-width: 520px;
+}
+.table th {
+  text-align: left;
+  font-family: var(--font-label);
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+}
+.table td {
+  padding: 4px 10px;
+  border-bottom: 1px solid var(--line);
+  height: 48px;
+}
+.nota {
+  color: var(--muted);
+}

@@ -2,7 +2,8 @@ import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
-// Se publica en GitHub Pages bajo /653gim_app/ (la versión de prueba, en /653gim_app/v2/ con BASE).
+// Se publica en GitHub Pages bajo /653gim_app/ (prueba en /653gim_app/v2/ con BASE). Comparte dominio
+// con otras apps (fspdev.github.io): por eso todo lo que se guarda en el teléfono lleva el prefijo "g653:".
 const base = process.env.BASE ?? '/653gim_app/'
 
 // https://vite.dev/config/
@@ -18,7 +19,7 @@ export default defineConfig({
         name: '653 Gym & Fitness',
         short_name: '653 Gym',
         id: base,
-        description: 'Tu entrenamiento en 653 Gym & Fitness, bloque por bloque.',
+        description: 'Tu plan de entrenamiento, armado por tu profe.',
         lang: 'es-AR',
         start_url: base,
         scope: base,
@@ -37,7 +38,7 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         navigateFallback: `${base}index.html`,
         cleanupOutdatedCaches: true,
-        // Sin reglas de caché en tiempo de ejecución: Firebase siempre va a la red (tiene su propia caché offline).
+        // Sin reglas de caché en tiempo de ejecución: todo queda en el teléfono.
       },
     }),
   ],

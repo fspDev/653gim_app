@@ -20,6 +20,22 @@
   --sheet-rest: max(166px, calc(var(--h) - var(--controls-top) - 60px - 40px * var(--k)));
 }
 
+/* Con indicación del profe: la nota va debajo del título y el peso y el anillo bajan para hacerle lugar. */
+.stage[data-note='true'] {
+  --note-top: calc(var(--title-top) + 74px);
+  --weight-top: max(calc(75px + 111px * var(--k)), calc(var(--note-top) + 74px));
+  --ring-top: max(calc(75px + 111px * var(--k)), calc(var(--note-top) + 66px));
+}
+.noteLayer {
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  top: var(--note-top);
+}
+.stage:not([data-note='true']) .noteLayer {
+  display: none;
+}
+
 /* ───── Cabeceras ───── */
 .layer {
   position: absolute;
@@ -321,7 +337,7 @@
 .afterDetail {
   margin-top: 2px;
   font-size: 15px;
-  color: #d8d3c8;
+  color: color-mix(in srgb, var(--dark-text) 85%, var(--dark-bg));
 }
 .afterLinks {
   margin-top: 14px;

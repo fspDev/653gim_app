@@ -16,6 +16,8 @@ import { BetweenView } from './BetweenView'
 import { CircuitView } from './CircuitView'
 import { ExitSheet, type ExitKind } from './ExitSheet'
 import { LogSheet } from './LogSheet'
+import { NoteContext } from './noteContext'
+import { NoteSheet } from './NoteSheet'
 import { StrengthView } from './StrengthView'
 import { TimeView } from './TimeView'
 
@@ -101,6 +103,9 @@ function EntrenoRun({ initial }: { initial: Workout }) {
 
   const closeExit = useCallback(() => setExitOpen(false), [])
   const closeLog = useCallback(() => setLogOpen(false), [])
+  const [noteOpen, setNoteOpen] = useState(false)
+  const closeNote = useCallback(() => setNoteOpen(false), [])
+  const openNote = useCallback(() => setNoteOpen(true), [])
 
   const handleExit = (kind: ExitKind) => {
     setExitOpen(false)
@@ -121,8 +126,13 @@ function EntrenoRun({ initial }: { initial: Workout }) {
     return <Summary w={w} records={records} streak={streak} onFeeling={(value) => dispatch({ type: 'SET_FEELING', value })} onClose={finish} />
   }
 
-  const wrap = (el: ReactElement) => <PipContext.Provider value={pipUi}>{el}</PipContext.Provider>
   const block = w.day.blocks[w.index]
+  const noteUi = { available: !!(block?.note || block?.video), open: openNote }
+  const wrap = (el: ReactElement) => (
+    <PipContext.Provider value={pipUi}>
+      <NoteContext.Provider value={noteUi}>{el}</NoteContext.Provider>
+    </PipContext.Provider>
+  )
   const run = w.run
   const openExit = () => setExitOpen(true)
 
@@ -134,10 +144,12 @@ function EntrenoRun({ initial }: { initial: Workout }) {
       onContinue={closeExit}
       onExit={handleExit}
     />
+  ) : noteOpen && block ? (
+    <NoteSheet name={block.name} note={block.note} video={block.video} onClose={closeNote} />
   ) : undefined
 
   if (w.stage === 'between') {
-    return wrap(<BetweenView w={w} now={now} dispatch={dispatch} onExit={openExit} overlay={overlay} inertFrame={exitOpen} />)
+    return wrap(<BetweenView w={w} now={now} dispatch={dispatch} onExit={openExit} overlay={overlay} inertFrame={!!overlay} />)
   }
 
   if (block.kind === 'fuerza' && run.kind === 'fuerza') {
@@ -165,17 +177,17 @@ function EntrenoRun({ initial }: { initial: Workout }) {
         onExit={openExit}
         onLog={() => setLogOpen(true)}
         overlay={overlay ?? logSheet}
-        inertFrame={exitOpen || !!logSheet}
+        inertFrame={!!overlay || !!logSheet}
       />
     )
   }
 
   if (block.kind === 'tiempo' && run.kind === 'tiempo') {
-    return wrap(<TimeView w={w} block={block} run={run} now={now} dispatch={dispatch} onExit={openExit} overlay={overlay} inertFrame={exitOpen} />)
+    return wrap(<TimeView w={w} block={block} run={run} now={now} dispatch={dispatch} onExit={openExit} overlay={overlay} inertFrame={!!overlay} />)
   }
 
   if (block.kind === 'circuito' && run.kind === 'circuito') {
-    return wrap(<CircuitView w={w} block={block} run={run} now={now} dispatch={dispatch} onExit={openExit} overlay={overlay} inertFrame={exitOpen} />)
+    return wrap(<CircuitView w={w} block={block} run={run} now={now} dispatch={dispatch} onExit={openExit} overlay={overlay} inertFrame={!!overlay} />)
   }
 
   return null
