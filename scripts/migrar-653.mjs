@@ -176,7 +176,7 @@ for (const u of usuarios.filter((x) => x.data.role === 'client')) {
   const dayDocs = []
   dias.forEach((day, i) => {
     const bloques = (Array.isArray(day.bloques) ? day.bloques : legacyBloques(day)).map((b, orden) => ({ ...b, orden }))
-    if (!bloques.some((b) => b.tipo !== 'tiempo')) return
+    // Los días vacíos también pasan: el plan queda igual que estaba (el profe los completa desde el panel).
     dayDocs.push({ id: day.id, letra: letraOf(day, i), order: dayDocs.length + 1, updatedAt: day.updatedAt ?? Date.now(), bloques })
   })
 
