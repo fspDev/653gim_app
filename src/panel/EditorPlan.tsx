@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { RPE_MAX, RPE_MIN } from '../data'
 import { fmtKg, fmtTime } from '../format'
 import { slugify } from '../keys'
 import {
@@ -389,6 +390,8 @@ function BloqueCard({ b, index, last, onPatch, onRemove, onMove }: CardProps) {
         {b.tipo === 'circuito' && <Num value={String(b.rondas)} label="Rondas" onCommit={int('rondas', 1)} />}
       </div>
 
+      {b.tipo === 'fuerza' && <RpeSeries b={b} onChange={(rpe) => onPatch({ rpe })} />}
+
       {b.tipo === 'circuito' && <Pasos pasos={b.pasos} onChange={(pasos) => onPatch({ pasos })} />}
 
       {open ? (
@@ -419,6 +422,32 @@ function BloqueCard({ b, index, last, onPatch, onRemove, onMove }: CardProps) {
         </button>
       )}
     </li>
+  )
+}
+
+/** Escala de percepción del esfuerzo (RPE 1–10) que el profe fija para cada serie. */
+function RpeSeries({ b, onChange }: { b: EBloque; onChange: (rpe: (number | null)[]) => void }) {
+  const values = Array.from({ length: b.series }, (_, i) => b.rpe?.[i] ?? null)
+  const set = (i: number, v: number | null) => onChange(values.map((x, j) => (j === i ? v : x)))
+  return (
+    <div className={styles.rpe}>
+      <span className={styles.numLabel}>Esfuerzo percibido (RPE 1–10) por serie</span>
+      <div className={styles.rpeRow}>
+        {values.map((v, i) => (
+          <label key={i} className={styles.rpeCell}>
+            <span className={styles.rpeSerie}>S{i + 1}</span>
+            <select className={styles.rpeSelect} aria-label={`RPE de la serie ${i + 1}`} value={v ?? ''} onChange={(e) => set(i, e.target.value ? Number(e.target.value) : null)}>
+              <option value="">—</option>
+              {Array.from({ length: RPE_MAX - RPE_MIN + 1 }, (_, k) => RPE_MIN + k).map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+          </label>
+        ))}
+      </div>
+    </div>
   )
 }
 

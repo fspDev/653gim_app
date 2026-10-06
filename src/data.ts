@@ -29,7 +29,12 @@ export interface StrengthBlock extends BlockBase {
   restSeconds?: number
   /** Salto de peso sugerido (kg) si la última vez se completó todo. */
   suggestion?: number
+  /** Escala de percepción del esfuerzo (1–10) que fija el profe para cada serie; `null` = sin indicar. */
+  rpe?: (number | null)[]
 }
+
+export const RPE_MIN = 1
+export const RPE_MAX = 10
 
 export interface CircuitStep {
   name: string

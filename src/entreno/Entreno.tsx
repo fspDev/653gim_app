@@ -160,8 +160,8 @@ function EntrenoRun({ initial }: { initial: Workout }) {
           serie={run.serie}
           exercise={block.short}
           log={log}
-          onSave={(reps, effort) => {
-            dispatch({ type: 'LOG_SET', serie: run.serie, reps, effort })
+          onSave={(reps) => {
+            dispatch({ type: 'LOG_SET', serie: run.serie, reps })
             setLogOpen(false)
           }}
           onClose={closeLog}

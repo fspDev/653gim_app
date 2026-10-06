@@ -78,12 +78,12 @@ describe('bloque de fuerza', () => {
     expect(w.run).toMatchObject({ phase: 'serie', serie: 2 })
   })
 
-  it('anotar la serie corrige reps y esfuerzo sin tocar las demás', () => {
+  it('anotar la serie corrige las reps sin tocar las demás', () => {
     let w = run(atBlock(1), { type: 'DONE', now: at(0) }, { type: 'TICK', now: at(90_000) }, { type: 'DONE', now: at(95_000) })
-    w = run(w, { type: 'LOG_SET', serie: 1, reps: 7, effort: 4 })
-    expect(w.logs.map((l) => [l.serie, l.reps, l.effort])).toEqual([
-      [1, 7, 4],
-      [2, 8, null],
+    w = run(w, { type: 'LOG_SET', serie: 1, reps: 7 })
+    expect(w.logs.map((l) => [l.serie, l.reps])).toEqual([
+      [1, 7],
+      [2, 8],
     ])
   })
 
@@ -210,5 +210,35 @@ describe('sugerencia de peso', () => {
   it('mira solo el último entreno de ese ejercicio', () => {
     const past = [...full('viejo', 100), ...full('nuevo', 200, 6), ...full('otro', 300).map((r) => ({ ...r, exerciseId: 'remo' }))]
     expect(suggestionFor(past, 'sent', 4)).toBe(0)
+  })
+})
+
+describe('orden libre de bloques', () => {
+  it('elegir uno pendiente lo pone a continuación y lo arranca', () => {
+    // Bici lista → "bloque listo"; se elige el circuito de core en vez de la sentadilla.
+    let w = run(createWorkout(DAY_B, T0, 'w1'), { type: 'TICK', now: at(8 * 60_000) })
+    w = reduce(w, { type: 'PICK_BLOCK', blockId: 'plancha', now: at(8 * 60_000) })
+    expect(w.stage).toBe('block')
+    expect(w.day.blocks[w.index].id).toBe('plancha')
+    expect(w.day.blocks).toHaveLength(DAY_B.blocks.length)
+    // El resto conserva su orden y sentadilla pasa a ser la que sigue.
+    expect(w.day.blocks[w.index + 1].id).toBe('sentadilla')
+  })
+
+  it('se puede elegir de nuevo en la pausa siguiente y el orden queda como se hizo', () => {
+    let w = run(createWorkout(DAY_B, T0, 'w1'), { type: 'TICK', now: at(8 * 60_000) })
+    w = reduce(w, { type: 'PICK_BLOCK', blockId: 'elongacion', now: at(8 * 60_000) })
+    // La elongación (por tiempo, 5 min) termina y se elige el peso muerto.
+    w = reduce(w, { type: 'TICK', now: at(13 * 60_000) })
+    expect(w.stage).toBe('between')
+    w = reduce(w, { type: 'PICK_BLOCK', blockId: 'peso-muerto', now: at(14 * 60_000) })
+    expect(w.day.blocks.slice(0, 3).map((b) => b.id)).toEqual(['bici', 'elongacion', 'peso-muerto'])
+    expect(w.results.map((r) => r.blockId)).toEqual(['bici', 'elongacion'])
+  })
+
+  it('elegir un bloque que ya se hizo no cambia nada', () => {
+    const w = run(createWorkout(DAY_B, T0, 'w1'), { type: 'TICK', now: at(8 * 60_000) })
+    const same = reduce(w, { type: 'PICK_BLOCK', blockId: 'bici', now: at(8 * 60_000) })
+    expect(same.day.blocks.map((b) => b.id)).toEqual(DAY_B.blocks.map((b) => b.id))
   })
 })

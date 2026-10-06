@@ -16,7 +16,7 @@ export type WorkoutAction =
   | { type: 'WEIGHT'; delta: number }
   | { type: 'APPLY_SUGGESTION' }
   | { type: 'CLEAR_FRESH' }
-  | { type: 'LOG_SET'; serie: number; reps: number; effort: number | null }
+  | { type: 'LOG_SET'; serie: number; reps: number }
   // tiempo
   | { type: 'TIME_TOGGLE'; now: number }
   | { type: 'TIME_ADD'; deltaSeconds: number; now: number }
@@ -27,6 +27,8 @@ export type WorkoutAction =
   // entre bloques
   | { type: 'BETWEEN_START'; now: number }
   | { type: 'BETWEEN_TOGGLE'; now: number }
+  /** Elegir cuál de los bloques pendientes sigue (el entreno no tiene que ser lineal). */
+  | { type: 'PICK_BLOCK'; blockId: string; now: number }
   // cierre
   | { type: 'SET_FEELING'; value: number }
   | { type: 'EXIT_SAVE'; now: number }
@@ -85,6 +87,20 @@ function completeBlock(w: Workout, now: number): Workout {
   return { ...w, results, stage: 'between', betweenEnd: now + BETWEEN_SECONDS * 1000, betweenLeft: null }
 }
 
+/**
+ * Pone el bloque elegido justo después del que acaba de terminar. El entreno trabaja sobre su propia copia
+ * del día, así que reordenarla alcanza: todo lo que mira "el que sigue" sigue valiendo.
+ */
+export function moveToNext(w: Workout, blockId: string): Workout {
+  const from = w.day.blocks.findIndex((b) => b.id === blockId)
+  const to = w.index + 1
+  if (from <= to) return w // ya es el que sigue, o ya se hizo
+  const blocks = [...w.day.blocks]
+  const [picked] = blocks.splice(from, 1)
+  blocks.splice(to, 0, picked)
+  return { ...w, day: { ...w.day, blocks } }
+}
+
 function startNextBlock(w: Workout, now: number): Workout {
   if (w.stage !== 'between') return w
   const index = w.index + 1
@@ -133,6 +149,8 @@ export function workoutReducer(w: Workout, action: WorkoutAction): Workout {
         return w.betweenLeft === null && action.now >= w.betweenEnd ? startNextBlock(w, action.now) : w
       case 'BETWEEN_START':
         return startNextBlock(w, action.now)
+      case 'PICK_BLOCK':
+        return startNextBlock(moveToNext(w, action.blockId), action.now)
       case 'BETWEEN_TOGGLE': {
         if (w.betweenLeft !== null) return { ...w, betweenEnd: action.now + w.betweenLeft, betweenLeft: null }
         return { ...w, betweenLeft: Math.max(0, w.betweenEnd - action.now) }
@@ -211,7 +229,7 @@ export function workoutReducer(w: Workout, action: WorkoutAction): Workout {
         return {
           ...w,
           logs: w.logs.map((l) =>
-            l.blockId === block.id && l.serie === action.serie ? { ...l, reps: Math.max(0, action.reps), effort: action.effort } : l,
+            l.blockId === block.id && l.serie === action.serie ? { ...l, reps: Math.max(0, action.reps) } : l,
           ),
         }
 

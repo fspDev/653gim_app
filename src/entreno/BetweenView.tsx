@@ -27,6 +27,8 @@ const kg = (n: number) => n.toLocaleString('es-AR')
 export function BetweenView({ w, now, dispatch, onExit, overlay, inertFrame }: Props) {
   const done = w.day.blocks[w.index]
   const next = w.day.blocks[w.index + 1]
+  // Los que quedan después del que sigue: se pueden hacer en cualquier orden.
+  const others = w.day.blocks.slice(w.index + 2)
   const stats = blockStats(w, done.id)
   const paused = w.betweenLeft !== null
   const leftMs = paused ? w.betweenLeft! : Math.max(0, w.betweenEnd - now)
@@ -93,6 +95,18 @@ export function BetweenView({ w, now, dispatch, onExit, overlay, inertFrame }: P
           {next.name.toUpperCase()}
         </div>
         <div className={styles.nextDetail}>{blockDetail(next)}</div>
+        {others.length > 0 && (
+          <div className={styles.pick}>
+            <div className={styles.pickLabel}>O ELEGÍ OTRO</div>
+            <div className={styles.pickList}>
+              {others.map((b) => (
+                <button key={b.id} className={styles.pickChip} onClick={() => dispatch({ type: 'PICK_BLOCK', blockId: b.id, now: Date.now() })}>
+                  {b.short}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         <div className={styles.grow} />
 
         <div className={styles.countdown}>

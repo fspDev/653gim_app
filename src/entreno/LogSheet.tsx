@@ -1,8 +1,6 @@
 import { useState } from 'react'
 import { fmtKg } from '../format'
 import type { SetLog } from '../workout/types'
-import { Face } from '../ui/Face'
-import { EFFORT_LABELS } from '../ui/labels'
 import styles from './LogSheet.module.css'
 import { Sheet } from './Sheet'
 
@@ -11,15 +9,13 @@ interface Props {
   /** Nombre corto del ejercicio ("SENTADILLA"). */
   exercise: string
   log: SetLog
-  onSave: (reps: number, effort: number | null) => void
+  onSave: (reps: number) => void
   onClose: () => void
 }
 
 /** Registro rápido (Registro.dc.html): hoja sobre el descanso, anotar no quita tiempo. */
 export function LogSheet({ serie, exercise, log, onSave, onClose }: Props) {
   const [reps, setReps] = useState(log.reps)
-  // effort se guarda 1–5; en pantalla es el índice 0–4.
-  const [effort, setEffort] = useState<number | null>(log.effort)
 
   return (
     <Sheet label="Registrar serie" onClose={onClose}>
@@ -50,27 +46,10 @@ export function LogSheet({ serie, exercise, log, onSave, onClose }: Props) {
         </button>
       </div>
 
-      <div className={styles.question} style={{ marginTop: 22 }}>
-        ¿Cómo te costó?
-      </div>
-      <div className={styles.faces} role="radiogroup" aria-label="¿Cómo te costó?">
-        {EFFORT_LABELS.map((label, i) => {
-          const on = effort === i + 1
-          return (
-            <button key={label} className={styles.face} role="radio" aria-checked={on} aria-label={label} data-on={on} onClick={() => setEffort(on ? null : i + 1)}>
-              <span className={styles.faceDisc}>
-                <Face level={i} />
-              </span>
-              <span className={styles.faceLabel}>{label}</span>
-            </button>
-          )
-        })}
-      </div>
-
-      <button className={styles.save} onClick={() => onSave(reps, effort)}>
+      <button className={styles.save} onClick={() => onSave(reps)}>
         GUARDAR
       </button>
-      <button className={styles.plan} onClick={() => onSave(log.targetReps, null)}>
+      <button className={styles.plan} onClick={() => onSave(log.targetReps)}>
         Como la planeé ({log.targetReps} reps)
       </button>
     </Sheet>

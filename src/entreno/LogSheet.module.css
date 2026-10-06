@@ -52,41 +52,6 @@
   color: var(--muted);
 }
 
-.faces {
-  margin-top: 12px;
-  display: flex;
-  justify-content: space-between;
-}
-.face {
-  width: 62px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-}
-.faceDisc {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background: var(--fill);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.face[data-on='true'] .faceDisc {
-  background: var(--accent);
-  color: var(--on-accent);
-}
-.faceLabel {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--muted);
-}
-.face[data-on='true'] .faceLabel {
-  font-weight: 700;
-  color: var(--ink);
-}
-
 .save {
   margin-top: 26px;
   height: 64px;

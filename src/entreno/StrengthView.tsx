@@ -42,6 +42,8 @@ export function StrengthView({ w, block, run, now, dispatch, onExit, onLog, over
   const dark = temaDescanso === 'oscuro' || (temaDescanso === 'auto' && prefersDark)
   const next = w.day.blocks[w.index + 1]
   const rest = run.phase === 'descanso'
+  // Esfuerzo percibido que indicó el profe para la serie en curso.
+  const rpe = block.rpe?.[run.serie - 1] ?? null
   const remaining = rest ? secondsLeft(run.restEnd, now) : 0
   const warn = rest && remaining > 0 && remaining <= WARN_SECONDS
 
@@ -137,7 +139,10 @@ export function StrengthView({ w, block, run, now, dispatch, onExit, onLog, over
         <div className={styles.objectiveRow}>
           <div>
             <div className={styles.objectiveLabel}>OBJETIVO</div>
-            <div className={styles.objectiveValue}>{block.reps} REPS</div>
+            <div className={styles.objectiveValue}>
+              {block.reps} REPS
+              {rpe ? ` · RPE ${rpe}` : ''}
+            </div>
           </div>
           <div className={styles.stepper}>
             <button className={styles.round} aria-label="Bajar peso" onClick={() => dispatch({ type: 'WEIGHT', delta: -WEIGHT_STEP })}>
