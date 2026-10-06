@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Navigate } from 'react-router-dom'
 import { problemaClave, usernameFrom } from '../cuentas'
-import { LogoMark } from '../ui/Logo'
+import { LogoCompleto } from '../ui/Logo'
 import { useAuth, type LoginResult } from './context'
 import styles from './Auth.module.css'
 
@@ -27,11 +27,7 @@ export function Ingreso() {
   return (
     <div className={styles.page}>
       <div className={styles.brand}>
-        <LogoMark height={64} />
-        <div>
-          <div className={styles.name}>GYM &amp; FITNESS</div>
-          <div className={styles.tag}>SEISCINCUENTAYTRES</div>
-        </div>
+        <LogoCompleto width={220} />
       </div>
       {modo === 'entrar' ? (
         <Entrar onCrearProfe={profeConfigurado === false ? () => setModo('profe') : null} />

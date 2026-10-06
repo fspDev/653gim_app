@@ -472,12 +472,12 @@
   --skip-fg: var(--dark-text);
 }
 .stage[data-theme='oscuro'] {
-  --bg: #141414;
-  --ink: #f4f1ea;
-  --muted: #a39e93;
-  --fill: #2b2a27;
-  --track: #33312d;
-  --track-ring: #2b2a27;
+  --bg: #1f1f1f;
+  --ink: #ffffff;
+  --muted: #aeaeae;
+  --fill: #2e2e2e;
+  --track: #383838;
+  --track-ring: #2e2e2e;
   --arc-color: var(--accent);
   --skip-bg: var(--accent);
   --skip-fg: var(--on-accent);

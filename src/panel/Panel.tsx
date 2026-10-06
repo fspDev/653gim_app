@@ -25,7 +25,7 @@ export function Panel() {
         <div className={styles.brand}>
           <LogoMark height={34} />
           <div className={styles.brandText}>
-            <span className={styles.brandName}>GYM &amp; FITNESS</span>
+            <span className={styles.brandName}>653 GIMNASIO</span>
             <span className={styles.brandTag}>PANEL DEL PROFE</span>
           </div>
         </div>

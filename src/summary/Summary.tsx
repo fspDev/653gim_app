@@ -52,7 +52,7 @@ export function Summary({ w, records, streak, onFeeling, onClose }: Props) {
       <div className={styles.col}>
         <div className={styles.head}>
           <div className={styles.topbar}>
-            <Logo />
+            <Logo inverse />
             <button className={styles.close} aria-label="Cerrar" onClick={onClose}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
                 <path d="M6 6l12 12M18 6L6 18" />

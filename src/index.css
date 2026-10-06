@@ -1,24 +1,25 @@
 :root {
-  --bg: #f4f1ea;
-  --ink: #141414;
-  /* Acento: rojo de la marca 653. Va con texto blanco encima. */
-  --accent: #e3202f;
-  --accent-pressed: #c41824;
+  /* Colores del logo: blanco de fondo, grafito y rojo. La paleta elegida en Perfil los reemplaza (src/theme.ts). */
+  --bg: #ffffff;
+  --ink: #2b2b2b;
+  /* Acento: rojo del logo del 653. Va con texto blanco encima. */
+  --accent: #e8192f;
+  --accent-pressed: #c51528;
   --on-accent: #ffffff;
   /* El acento cuando se usa como TEXTO o borde sobre el fondo: lo ajusta la paleta para que se lea. */
-  --accent-ink: #b61a26;
-  --muted: #6b665d;
-  --muted-2: #9a948a;
-  --fill: #e6e1d6;
-  --track: #dad4c8;
-  --track-ring: #e3ddd1;
-  --line: #e2ddd2;
+  --accent-ink: #ba1426;
+  --muted: #8a8a8a;
+  --muted-2: #aaaaaa;
+  --fill: #f0f0f0;
+  --track: #e6e6e6;
+  --track-ring: #ececec;
+  --line: #eeeeee;
 
-  --dark-bg: #141414;
-  --dark-text: #f4f1ea;
-  --dark-muted: #a39e93;
-  --dark-fill: #2b2a27;
-  --dark-sheet: #22211e;
+  --dark-bg: #2b2b2b;
+  --dark-text: #ffffff;
+  --dark-muted: #aeaeae;
+  --dark-fill: #444444;
+  --dark-sheet: #383838;
 
   --font-display: Anton, sans-serif;
   --font-label: 'Barlow Condensed', sans-serif;

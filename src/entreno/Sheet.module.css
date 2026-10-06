@@ -49,8 +49,8 @@
 
 /* Las hojas usan la paleta elegida aunque la pantalla de atrás sea el descanso oscuro. */
 .sheet {
-  --bg: var(--sheet-bg, #f4f1ea);
-  --ink: var(--sheet-ink, #141414);
-  --muted: var(--sheet-muted, #6b665d);
+  --bg: var(--sheet-bg, #ffffff);
+  --ink: var(--sheet-ink, #2b2b2b);
+  --muted: var(--sheet-muted, #8a8a8a);
   --fill: var(--sheet-fill, #e6e1d6);
 }

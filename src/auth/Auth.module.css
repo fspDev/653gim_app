@@ -26,20 +26,8 @@
   flex-direction: column;
   gap: 18px;
 }
-.name {
-  font-family: var(--font-display);
-  font-size: min(52px, 13vw);
-  line-height: 0.95;
-  letter-spacing: 0.01em;
-}
-.tag {
-  margin-top: 6px;
-  font-family: var(--font-label);
-  font-weight: 700;
-  font-size: 17px;
-  letter-spacing: 0.34em;
-  color: var(--muted);
-}
+
+
 .lead {
   margin: 20px 0 0;
   max-width: 320px;

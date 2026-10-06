@@ -60,7 +60,7 @@ export const StoryCard = forwardRef<HTMLDivElement, { data: StoryData }>(functio
           </div>
         )}
         <div className={styles.footer}>
-          <span>653 GYM &amp; FITNESS</span>
+          <span>653 GIMNASIO</span>
           {data.streak > 0 && <span>{data.streakLabel}</span>}
         </div>
       </div>

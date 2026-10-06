@@ -14,10 +14,10 @@ export default defineConfig({
     VitePWA({
       // "prompt": la app nueva no se activa sola; el socio elige cuándo (nunca en medio de un entreno).
       registerType: 'prompt',
-      includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
+      includeAssets: ['favicon.png', 'apple-touch-icon.png'],
       manifest: {
-        name: '653 Gym & Fitness',
-        short_name: '653 Gym',
+        name: '653 Gimnasio',
+        short_name: '653 Gimnasio',
         id: base,
         description: 'Tu plan de entrenamiento, armado por tu profe.',
         lang: 'es-AR',
@@ -25,8 +25,8 @@ export default defineConfig({
         scope: base,
         display: 'standalone',
         orientation: 'portrait',
-        background_color: '#F4F1EA',
-        theme_color: '#F4F1EA',
+        background_color: '#FFFFFF',
+        theme_color: '#FFFFFF',
         icons: [
           { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
           { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png' },

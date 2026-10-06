@@ -10,17 +10,20 @@ export interface Palette {
   ink: string
 }
 
-/** Rojo de la marca 653. Con texto blanco encima. */
-export const ACCENT = '#e3202f'
+/** Rojo del logo del 653. Con texto blanco encima. */
+export const ACCENT = '#e8192f'
+/** Grafito del logo (el "5" y "gym & fitness"). */
+export const GRAFITO = '#2b2b2b'
 
 export const PALETTES: Palette[] = [
-  { id: '653', nombre: '653', bg: '#f4f1ea', ink: '#141414' },
-  { id: 'blanco', nombre: 'Blanco', bg: '#ffffff', ink: '#111111' },
+  // La de la marca: el logo va sobre blanco.
+  { id: '653', nombre: '653', bg: '#ffffff', ink: GRAFITO },
+  { id: 'crema', nombre: 'Crema', bg: '#f4f1ea', ink: '#141414' },
   { id: 'perla', nombre: 'Perla', bg: '#eceef1', ink: '#1a1f26' },
   { id: 'arena', nombre: 'Arena', bg: '#efe5d5', ink: '#2b2117' },
   { id: 'menta', nombre: 'Menta', bg: '#e6f0ea', ink: '#13261c' },
   { id: 'noche', nombre: 'Noche', bg: '#141414', ink: '#f4f1ea' },
-  { id: 'grafito', nombre: 'Grafito', bg: '#26272a', ink: '#f1f1f1' },
+  { id: 'grafito', nombre: 'Grafito', bg: GRAFITO, ink: '#f1f1f1' },
   { id: 'azul', nombre: 'Azul noche', bg: '#0f1826', ink: '#e8eef7' },
 ]
 
@@ -79,5 +82,7 @@ export function applyPalette(id: string) {
   const root = document.documentElement
   for (const [k, v] of Object.entries(paletteVars(p))) root.style.setProperty(k, v)
   root.style.colorScheme = isDark(p.bg) ? 'dark' : 'light'
+  // El logo elige su versión (grises oscuros o claros) según el fondo.
+  root.dataset.scheme = isDark(p.bg) ? 'dark' : 'light'
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', p.bg)
 }

@@ -1,9 +1,28 @@
-.mark {
-  display: block;
+.img {
+  display: inline-block;
   flex-shrink: 0;
-  font-family: var(--font-display);
-  line-height: 0.9;
-  letter-spacing: 0.01em;
+  line-height: 0;
+}
+.img img {
+  height: auto;
+  max-width: 100%;
+}
+.img img[height] {
+  width: auto;
+}
+
+/* Fondo claro: logo original. Fondo oscuro, o superficie invertida: grises aclarados. Ambas a la vez se anulan. */
+.img .claro,
+.img[data-inverse='true'] .oscuro,
+:global(:root[data-scheme='dark']) .img .oscuro,
+:global(:root[data-scheme='dark']) .img[data-inverse='true'] .claro {
+  display: block;
+}
+.img .oscuro,
+.img[data-inverse='true'] .claro,
+:global(:root[data-scheme='dark']) .img .claro,
+:global(:root[data-scheme='dark']) .img[data-inverse='true'] .oscuro {
+  display: none;
 }
 
 .logo {
@@ -11,37 +30,9 @@
   align-items: center;
   gap: 10px;
 }
-.logo[data-size='lg'] {
-  flex-direction: column;
-  gap: 28px;
-}
-
-.words {
-  display: flex;
-  flex-direction: column;
-  line-height: 1;
-}
-.logo[data-size='lg'] .words {
-  align-items: center;
-}
-
 .name {
   font-family: var(--font-display);
-  font-size: 15px;
-  letter-spacing: 0.04em;
-}
-.tag {
-  font-family: var(--font-label);
-  font-weight: 700;
-  font-size: 9px;
-  letter-spacing: 0.32em;
-  margin-top: 3px;
-  opacity: 0.7;
-}
-.logo[data-size='lg'] .name {
-  font-size: 64px;
-}
-.logo[data-size='lg'] .tag {
-  font-size: 26px;
-  margin-top: 12px;
+  font-size: 18px;
+  letter-spacing: 0.06em;
+  line-height: 1;
 }

@@ -1,7 +1,7 @@
 .card {
   box-sizing: border-box;
-  background: var(--bg, #f4f1ea);
-  color: var(--ink, #141414);
+  background: var(--bg, #ffffff);
+  color: var(--ink, #2b2b2b);
   font-family: Inter, system-ui, sans-serif;
   overflow: hidden;
   display: flex;
@@ -35,7 +35,7 @@
   font-weight: 700;
   font-size: 44px;
   line-height: 1.1;
-  color: var(--muted, #6b665d);
+  color: var(--muted, #8a8a8a);
 }
 .day {
   margin-top: 120px;
@@ -74,7 +74,7 @@
   flex-grow: 1;
 }
 .bottom {
-  background: var(--accent, #e3202f);
+  background: var(--accent, #e8192f);
   color: var(--on-accent, #ffffff);
   border-radius: 64px 64px 0 0;
   padding: 72px 96px 90px;

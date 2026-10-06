@@ -1,4 +1,4 @@
-/** El mismo proyecto de Firebase que la app de 653 Gym: todo lo de AM lleva el prefijo "am". */
+/** El proyecto de Firebase compartido con SomaApp y AM: todo lo de esta versión lleva el prefijo "g653". */
 export const firebaseConfig = {
   apiKey: 'AIzaSyAeBQNCxL8tzeRfAfyjTOOqcivt5lFEgjk',
   authDomain: 'somaapp-7166a.firebaseapp.com',

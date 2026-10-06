@@ -15,9 +15,9 @@ export function canvasSizeFor(ratio: number): { w: number; h: number } {
 
 const THEMES: Record<PipTheme, { bg: string; ink: string; muted: string; track: string; ring: string }> = {
   // Te toca: rojo entero, se ve de reojo desde la otra punta del gimnasio.
-  accent: { bg: '#e3202f', ink: '#ffffff', muted: 'rgba(255,255,255,0.78)', track: 'rgba(255,255,255,0.25)', ring: '#ffffff' },
-  dark: { bg: '#141414', ink: '#f4f1ea', muted: '#a39e93', track: '#2b2a27', ring: '#e3202f' },
-  light: { bg: '#f4f1ea', ink: '#141414', muted: '#6b665d', track: '#dad4c8', ring: '#e3202f' },
+  accent: { bg: '#e8192f', ink: '#ffffff', muted: 'rgba(255,255,255,0.78)', track: 'rgba(255,255,255,0.25)', ring: '#ffffff' },
+  dark: { bg: '#1f1f1f', ink: '#ffffff', muted: '#aeaeae', track: '#3a3a3a', ring: '#e8192f' },
+  light: { bg: '#ffffff', ink: '#2b2b2b', muted: '#8a8a8a', track: '#e6e6e6', ring: '#e8192f' },
 }
 
 const DISPLAY = 'Anton, Impact, sans-serif'

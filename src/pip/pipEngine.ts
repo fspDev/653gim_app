@@ -208,7 +208,7 @@ const PLACEHOLDER: PipFrame = {
   kicker: '653',
   big: '653',
   unit: '',
-  title: 'GYM & FITNESS',
+  title: 'GIMNASIO',
   sub: '',
   ring: null,
   countdown: null,
