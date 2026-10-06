@@ -20,10 +20,6 @@ export interface BloqueRow {
   indicacion?: string | null
   /** Indicación del profe para este ejercicio ("bajá lento, 3 segundos"). */
   comentario?: string | null
-  /** Video de YouTube con la técnica. */
-  video_url?: string | null
-  /** Solo fuerza: esfuerzo percibido (1–10) que indica el profe para cada serie. */
-  rpe?: (number | null)[] | null
 }
 
 export interface DiaRow {
@@ -78,7 +74,6 @@ export function mapBloque(row: BloqueRow): Block {
     short: shortName(row.nombre),
     minutes: minutesFor(row),
     note: row.comentario?.trim() || undefined,
-    video: row.video_url?.trim() || undefined,
   }
   switch (row.tipo) {
     case 'fuerza':
@@ -91,7 +86,6 @@ export function mapBloque(row: BloqueRow): Block {
         reps: row.reps ?? 10,
         weight: row.peso_kg ?? 0,
         restSeconds: row.descanso_s ?? undefined,
-        rpe: row.rpe?.some((r) => r !== null && r !== undefined) ? row.rpe : undefined,
       }
     case 'circuito': {
       const steps: CircuitStep[] = (row.pasos ?? []).map((p) => (p.segundos ? { name: p.nombre, seconds: p.segundos } : { name: p.nombre, reps: p.reps ?? 10 }))

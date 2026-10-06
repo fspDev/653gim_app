@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import { RPE_MAX, RPE_MIN } from '../data'
 import { fmtKg, fmtTime } from '../format'
 import { slugify } from '../keys'
 import {
@@ -19,7 +18,6 @@ import {
 } from '../rutina/editor'
 import { toDayDocs } from '../rutina/firestoreRutina'
 import { uuid } from '../uuid'
-import { youtubeId, youtubeThumb } from '../youtube'
 import { fullName, loadEjercicios, loadEstudiante, loadEstudiantes, planVacio, publicarPlan, type Ejercicio } from './api'
 import { Dialog } from './Dialog'
 import styles from './EditorPlan.module.css'
@@ -53,7 +51,7 @@ function reId(r: ERutina): ERutina {
   return { ...r, dias: r.dias.map((d) => ({ ...d, id: uuid(), bloques: d.bloques.map((b) => ({ ...b, id: uuid() })) })) }
 }
 
-/** Plan del estudiante: días, ejercicios con series/reps/peso/descanso, indicación y video, y Publicar. */
+/** Plan del estudiante: días, ejercicios con series/reps/peso/descanso, indicación, y Publicar. */
 export function EditorPlan({ d, reload }: TabProps) {
   const sid = d.e.id
   const saved = d.rutina
@@ -103,7 +101,6 @@ export function EditorPlan({ d, reload }: TabProps) {
 
   const dia = rutina.dias.find((x) => x.id === diaId) ?? rutina.dias[0]
   const update = (fn: (r: ERutina) => ERutina) => setRutina((r) => (r ? fn(r) : r))
-  const videoOf = (nombre: string) => ejercicios.find((e) => e.id === slugify(nombre))?.video ?? ''
 
   return (
     <section>
@@ -206,7 +203,7 @@ export function EditorPlan({ d, reload }: TabProps) {
           ejercicios={ejercicios}
           onClose={() => setPicker(false)}
           onPick={(nombre, ejercicioId) => {
-            update((r) => addBloque(r, dia.id, newBloque('fuerza', { ejercicioId, nombre, videoUrl: videoOf(nombre) })))
+            update((r) => addBloque(r, dia.id, newBloque('fuerza', { ejercicioId, nombre })))
             setPicker(false)
           }}
         />
@@ -306,8 +303,7 @@ interface CardProps {
 }
 
 function BloqueCard({ b, index, last, onPatch, onRemove, onMove }: CardProps) {
-  const tieneExtra = !!(b.comentario?.trim() || b.videoUrl?.trim())
-  const [open, setOpen] = useState(tieneExtra)
+  const [open, setOpen] = useState(!!b.comentario?.trim())
   const kind = b.tipo === 'fuerza' ? 'Fuerza' : b.tipo === 'tiempo' ? 'Por tiempo' : 'Circuito'
   const int = (key: 'series' | 'reps' | 'minutos' | 'rondas', min: number) => (t: string) => {
     const n = asInt(t, min)
@@ -315,8 +311,6 @@ function BloqueCard({ b, index, last, onPatch, onRemove, onMove }: CardProps) {
     onPatch({ [key]: n })
     return true
   }
-  const vid = b.videoUrl?.trim() ? youtubeId(b.videoUrl) : null
-  const videoMal = !!b.videoUrl?.trim() && !vid
 
   return (
     <li className={styles.card}>
@@ -390,8 +384,6 @@ function BloqueCard({ b, index, last, onPatch, onRemove, onMove }: CardProps) {
         {b.tipo === 'circuito' && <Num value={String(b.rondas)} label="Rondas" onCommit={int('rondas', 1)} />}
       </div>
 
-      {b.tipo === 'fuerza' && <RpeSeries b={b} onChange={(rpe) => onPatch({ rpe })} />}
-
       {b.tipo === 'circuito' && <Pasos pasos={b.pasos} onChange={(pasos) => onPatch({ pasos })} />}
 
       {open ? (
@@ -400,54 +392,13 @@ function BloqueCard({ b, index, last, onPatch, onRemove, onMove }: CardProps) {
             <span className={styles.numLabel}>Indicación para el estudiante</span>
             <textarea className={styles.textArea} rows={2} value={b.comentario ?? ''} placeholder="Ej.: bajá en 3 segundos, rodillas hacia afuera" onChange={(e) => onPatch({ comentario: e.target.value })} />
           </label>
-          <label className={styles.text}>
-            <span className={styles.numLabel}>Video de YouTube</span>
-            <div className={styles.videoRow}>
-              {vid && <img className={styles.thumb} src={youtubeThumb(vid)} alt="" width={80} height={45} loading="lazy" />}
-              <input
-                className={styles.textInput}
-                value={b.videoUrl ?? ''}
-                placeholder="Pegá el link (youtube.com o youtu.be)"
-                inputMode="url"
-                aria-invalid={videoMal}
-                onChange={(e) => onPatch({ videoUrl: e.target.value })}
-              />
-            </div>
-            {videoMal && <span className={styles.warn}>Ese link no es de un video de YouTube.</span>}
-          </label>
         </div>
       ) : (
         <button className={styles.extraBtn} onClick={() => setOpen(true)}>
-          + Indicación o video
+          + Indicación
         </button>
       )}
     </li>
-  )
-}
-
-/** Escala de percepción del esfuerzo (RPE 1–10) que el profe fija para cada serie. */
-function RpeSeries({ b, onChange }: { b: EBloque; onChange: (rpe: (number | null)[]) => void }) {
-  const values = Array.from({ length: b.series }, (_, i) => b.rpe?.[i] ?? null)
-  const set = (i: number, v: number | null) => onChange(values.map((x, j) => (j === i ? v : x)))
-  return (
-    <div className={styles.rpe}>
-      <span className={styles.numLabel}>Esfuerzo percibido (RPE 1–10) por serie</span>
-      <div className={styles.rpeRow}>
-        {values.map((v, i) => (
-          <label key={i} className={styles.rpeCell}>
-            <span className={styles.rpeSerie}>S{i + 1}</span>
-            <select className={styles.rpeSelect} aria-label={`RPE de la serie ${i + 1}`} value={v ?? ''} onChange={(e) => set(i, e.target.value ? Number(e.target.value) : null)}>
-              <option value="">—</option>
-              {Array.from({ length: RPE_MAX - RPE_MIN + 1 }, (_, k) => RPE_MIN + k).map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
-            </select>
-          </label>
-        ))}
-      </div>
-    </div>
   )
 }
 
@@ -528,7 +479,7 @@ function Picker({ ejercicios, onClose, onPick }: { ejercicios: Ejercicio[]; onCl
               <span>
                 <span className={styles.libName}>{e.nombre}</span>
                 <span className={styles.libGroup}>
-                  {[e.grupo, e.video ? '▶ con video' : null].filter(Boolean).join(' · ')}
+                  {e.grupo}
                 </span>
               </span>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">

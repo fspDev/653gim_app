@@ -28,18 +28,4 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-.video {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  height: 28px;
-  padding: 0 10px 0 8px;
-  border-radius: 14px;
-  background: var(--accent);
-  color: var(--on-accent);
-  font-family: var(--font-label);
-  font-weight: 800;
-  font-size: 13px;
-  letter-spacing: 0.06em;
-}
+

@@ -71,19 +71,19 @@ describe('plan guardado en Firestore', () => {
   const plan = addBloque(
     { id: 'r', nombre: 'Fuerza', dias: [{ id: 'd1', letra: 'A', bloques: [] }] },
     'd1',
-    newBloque('fuerza', { id: 'b1', nombre: 'Sentadilla con barra', series: 4, reps: 8, pesoKg: 40, comentario: '  Bajá lento ', videoUrl: 'https://youtu.be/abc' }),
+    newBloque('fuerza', { id: 'b1', nombre: 'Sentadilla con barra', series: 4, reps: 8, pesoKg: 40, comentario: '  Bajá lento '}),
   )
   const docs = toDayDocs(plan, 1000)
 
-  it('guarda un documento por día con sus bloques, comentario y video', () => {
+  it('guarda un documento por día con sus bloques y comentario', () => {
     expect(docs).toHaveLength(1)
     expect(docs[0]).toMatchObject({ id: 'd1', letra: 'A', order: 1, updatedAt: 1000 })
-    expect(docs[0].bloques?.[0]).toMatchObject({ nombre: 'Sentadilla con barra', comentario: 'Bajá lento', video_url: 'https://youtu.be/abc' })
+    expect(docs[0].bloques?.[0]).toMatchObject({ nombre: 'Sentadilla con barra', comentario: 'Bajá lento' })
   })
 
-  it('el estudiante ve la indicación y el video del profe', () => {
+  it('el socio ve la indicación del profe', () => {
     const b = mapRutina(rutinaFromDocs(docs, { nombre: 'Fuerza', publicadaAt: 2000 })).days[0].blocks[0]
-    expect(b).toMatchObject({ note: 'Bajá lento', video: 'https://youtu.be/abc', weight: 40 })
+    expect(b).toMatchObject({ note: 'Bajá lento', weight: 40 })
   })
 
   it('el último peso del estudiante pisa el del plan, salvo que el profe publique después', () => {
@@ -94,7 +94,7 @@ describe('plan guardado en Firestore', () => {
 
   it('ida y vuelta al editor del panel', () => {
     const back = fromRow(rutinaFromDocs(docs, { nombre: 'Fuerza' }))
-    expect(back.dias[0].bloques[0]).toMatchObject({ comentario: 'Bajá lento', videoUrl: 'https://youtu.be/abc', pesoKg: 40 })
+    expect(back.dias[0].bloques[0]).toMatchObject({ comentario: 'Bajá lento', pesoKg: 40 })
   })
 
   it('un día sin bloques no se puede entrenar', () => {

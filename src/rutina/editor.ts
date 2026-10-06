@@ -24,11 +24,8 @@ export interface EBloque {
   /** Bloques por tiempo: "Calentamiento", "Final" e indicación. Se conservan aunque el editor no los muestre. */
   subtitulo?: string | null
   indicacion?: string | null
-  /** Indicación del profe y video de YouTube (cualquier tipo de bloque). */
+  /** Indicación del profe (cualquier tipo de bloque). */
   comentario?: string
-  videoUrl?: string
-  /** Fuerza: esfuerzo percibido (1–10) por serie; puede ser más corto o largo que `series`. */
-  rpe?: (number | null)[]
 }
 
 export interface EDia {
@@ -60,7 +57,6 @@ export function newBloque(tipo: Tipo, patch: Partial<EBloque> = {}): EBloque {
     rondas: tipo === 'circuito' ? 3 : 0,
     pasos: tipo === 'circuito' ? [{ nombre: 'Plancha frontal', segundos: 30 }] : [],
     comentario: '',
-    videoUrl: '',
   }
   return { ...base, ...patch }
 }
@@ -96,12 +92,6 @@ export function moveBloque(r: ERutina, diaId: string, from: number, to: number):
     copy.splice(to, 0, item)
     return copy
   })
-}
-
-/** El RPE de cada serie, ajustado a la cantidad de series; `null` si no se indicó ninguno. */
-export function rpeFor(b: Pick<EBloque, 'series' | 'rpe'>): (number | null)[] | null {
-  const list = Array.from({ length: b.series }, (_, i) => b.rpe?.[i] ?? null)
-  return list.some((r) => r !== null) ? list : null
 }
 
 /** "1:30" → 90; "90" → 90; vacío o inválido → null. */
@@ -158,8 +148,6 @@ export function toRows(r: ERutina): { dias: DiaWrite[]; bloques: BloqueWrite[] }
       subtitulo: b.tipo === 'tiempo' ? (b.subtitulo ?? null) : null,
       indicacion: b.tipo === 'tiempo' ? (b.indicacion ?? null) : null,
       comentario: b.comentario?.trim() || null,
-      video_url: b.videoUrl?.trim() || null,
-      rpe: b.tipo === 'fuerza' ? rpeFor(b) : null,
     })),
   )
   return { dias, bloques }
@@ -207,8 +195,6 @@ export function fromRow(row: {
             subtitulo: b.subtitulo ?? null,
             indicacion: b.indicacion ?? null,
             comentario: b.comentario ?? '',
-            videoUrl: b.video_url ?? '',
-            rpe: b.rpe ?? [],
           })),
       })),
   }

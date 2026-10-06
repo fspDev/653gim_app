@@ -18,7 +18,7 @@ function detail(b: Block): string {
   return `${b.minutes} min${b.hint ? ` · ${b.hint}` : ''}`
 }
 
-/** El plan que armó el profe, día por día, con sus indicaciones y videos. Solo lectura. */
+/** El plan que armó el profe, día por día, con sus indicaciones. Solo lectura. */
 export function Plan() {
   const { profile } = useAuth()
   const { rutina, days, loading } = useDays()
@@ -69,9 +69,9 @@ export function Plan() {
                     <div className={styles.detail}>{detail(b)}</div>
                   </div>
                 </div>
-                {(b.note || b.video) && (
+                {b.note && (
                   <div className={styles.extra}>
-                    <ProfeNota note={b.note} video={b.video} compact />
+                    <ProfeNota note={b.note} compact />
                   </div>
                 )}
               </li>

@@ -15,6 +15,6 @@ export const COL = {
   logins: 'g653Logins',
   /** `g653Students/{sid}` + subcolecciones `days`, `logs`, `pagos`, `medidas`. */
   students: 'g653Students',
-  /** Biblioteca de ejercicios del profe (con su video). */
+  /** Biblioteca de ejercicios del profe. */
   exercises: 'g653Exercises',
 } as const

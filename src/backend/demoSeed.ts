@@ -15,7 +15,7 @@ const DAY = 24 * 60 * 60 * 1000
 export const DEMO_CLAVE = 'demo1234'
 
 function planJuan(): ERutina {
-  const f = (nombre: string, series: number, reps: number, pesoKg: number, extra: { comentario?: string; videoUrl?: string } = {}) =>
+  const f = (nombre: string, series: number, reps: number, pesoKg: number, extra: { comentario?: string } = {}) =>
     newBloque('fuerza', { id: `b-${slugify(nombre)}`, ejercicioId: slugify(nombre), nombre, series, reps, pesoKg, descansoS: 90, ...extra })
   const bici = (subtitulo: 'Calentamiento' | 'Final', minutos: number, id: string) =>
     newBloque('tiempo', { id, nombre: subtitulo === 'Calentamiento' ? 'Bici fija' : 'Bici y elongación', minutos, subtitulo, indicacion: subtitulo === 'Calentamiento' ? 'Ritmo suave · 70–80 rpm' : 'Pedaleo suave y elongá al terminar' })
@@ -28,9 +28,9 @@ function planJuan(): ERutina {
         letra: 'A',
         bloques: [
           bici('Calentamiento', 8, 'a-cal'),
-          f('Sentadilla con barra', 4, 8, 40, { comentario: 'Bajá en 3 segundos y empujá fuerte. Rodillas hacia afuera.', videoUrl: 'https://www.youtube.com/watch?v=bEv6CCg2BC8' }),
+          f('Sentadilla con barra', 4, 8, 40, { comentario: 'Bajá en 3 segundos y empujá fuerte. Rodillas hacia afuera.' }),
           f('Press banca', 4, 8, 30, { comentario: 'Escápulas juntas todo el tiempo.' }),
-          f('Remo con mancuerna', 3, 10, 16, { videoUrl: 'https://youtu.be/roCP6wCXPqo' }),
+          f('Remo con mancuerna', 3, 10, 16),
           bici('Final', 5, 'a-fin'),
         ],
       },
@@ -145,7 +145,7 @@ export function demoSeed(now = Date.now()) {
     const fecha = localDateKey(now - 70 * DAY + d * DAY)
     docs[`${COL.students}/demo-juan/medidas/m${i}`] = { fecha, pesoKg: 84 - i * 1.2, grasaPct: 24 - i * 0.8, cinturaCm: 96 - i * 1.5, nota: i === 0 ? 'Medición inicial' : '', createdAt: now }
   })
-  docs[`${COL.exercises}/sentadilla-con-barra`] = { nombre: 'Sentadilla con barra', grupo: 'Piernas', video: 'https://www.youtube.com/watch?v=bEv6CCg2BC8', updatedAt: now }
+  docs[`${COL.exercises}/sentadilla-con-barra`] = { nombre: 'Sentadilla con barra', grupo: 'Piernas', updatedAt: now }
 
   return { docs: JSON.parse(JSON.stringify(docs)) as Record<string, Data>, users }
 }

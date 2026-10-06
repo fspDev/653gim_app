@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addBloque, addDia, fromRow, minutesOf, moveBloque, newBloque, nextLetter, parseKg, parseRest, patchBloque, removeBloque, removeDia, removedIds, rpeFor, toRows, totalMinutes, type ERutina } from './editor'
-import { mapBloque } from './mapRutina'
+import { addBloque, addDia, fromRow, minutesOf, moveBloque, newBloque, nextLetter, parseKg, parseRest, patchBloque, removeBloque, removeDia, removedIds, toRows, totalMinutes, type ERutina } from './editor'
 
 
 describe('editor de rutina', () => {
@@ -72,24 +71,5 @@ describe('editor de rutina', () => {
     const { dias, bloques } = toRows(r)
     const back = fromRow({ id: 'r', nombre: 'Rutina', dias: dias.map((d) => ({ id: d.id, letra: d.letra, orden: d.orden, bloques: bloques.filter((b) => b.dia_id === d.id) })) })
     expect(back.dias[0].bloques[0]).toMatchObject({ tipo: 'circuito', rondas: 3, pasos: [{ nombre: 'Plancha', segundos: 45 }, { nombre: 'Dead bug', reps: 12 }] })
-  })
-})
-
-describe('RPE por serie', () => {
-  it('se ajusta a la cantidad de series y es null si no hay ninguno', () => {
-    expect(rpeFor({ series: 3, rpe: [7, null, 9, 10] })).toEqual([7, null, 9])
-    expect(rpeFor({ series: 3, rpe: [8] })).toEqual([8, null, null])
-    expect(rpeFor({ series: 3, rpe: [null, null] })).toBeNull()
-    expect(rpeFor({ series: 2 })).toBeNull()
-  })
-
-  it('ida y vuelta por las filas y llega al bloque de la app', () => {
-    const r: ERutina = { id: 'r', nombre: 'Plan', dias: [{ id: 'd', letra: 'A', bloques: [newBloque('fuerza', { id: 'b', nombre: 'Sentadilla', series: 3, rpe: [7, 8, 9] })] }] }
-    const { dias, bloques } = toRows(r)
-    expect(bloques[0].rpe).toEqual([7, 8, 9])
-    const back = fromRow({ id: 'r', nombre: 'Plan', dias: dias.map((d) => ({ ...d, bloques: bloques.map(({ dia_id: _d, ...b }) => b) })) })
-    expect(back.dias[0].bloques[0].rpe).toEqual([7, 8, 9])
-    const block = mapBloque(bloques[0])
-    expect(block.kind === 'fuerza' && block.rpe).toEqual([7, 8, 9])
   })
 })

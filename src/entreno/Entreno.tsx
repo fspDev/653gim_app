@@ -127,7 +127,7 @@ function EntrenoRun({ initial }: { initial: Workout }) {
   }
 
   const block = w.day.blocks[w.index]
-  const noteUi = { available: !!(block?.note || block?.video), open: openNote }
+  const noteUi = { available: !!block?.note, open: openNote }
   const wrap = (el: ReactElement) => (
     <PipContext.Provider value={pipUi}>
       <NoteContext.Provider value={noteUi}>{el}</NoteContext.Provider>
@@ -145,7 +145,7 @@ function EntrenoRun({ initial }: { initial: Workout }) {
       onExit={handleExit}
     />
   ) : noteOpen && block ? (
-    <NoteSheet name={block.name} note={block.note} video={block.video} onClose={closeNote} />
+    <NoteSheet name={block.name} note={block.note} onClose={closeNote} />
   ) : undefined
 
   if (w.stage === 'between') {

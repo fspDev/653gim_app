@@ -48,7 +48,6 @@ export interface Ejercicio {
   id: string
   nombre: string
   grupo: string | null
-  video: string
 }
 
 export interface Resumen {
@@ -227,14 +226,14 @@ export async function publicarPlan(sid: string, rutina: ERutina, version: number
   ops.push({ type: 'update', path: sPath(sid), data: { rutina: { nombre: rutina.nombre.trim() || 'Plan', version: next, publicadaAt: now, dias: docs.length } } })
   await store.write(ops)
 
-  // Biblioteca: cada ejercicio de fuerza queda (con su video) para el próximo plan.
+  // Biblioteca: cada ejercicio de fuerza queda para el próximo plan.
   const lib: WriteOp[] = rutina.dias
     .flatMap((d) => d.bloques)
     .filter((b) => b.tipo === 'fuerza' && b.nombre.trim())
     .map((b) => ({
       type: 'set',
       path: `${COL.exercises}/${b.ejercicioId || slugify(b.nombre)}`,
-      data: { nombre: b.nombre.trim(), ...(b.videoUrl?.trim() ? { video: b.videoUrl.trim() } : {}), updatedAt: now },
+      data: { nombre: b.nombre.trim(), updatedAt: now },
       merge: true,
     }))
   if (lib.length) await store.write(lib).catch(() => {})
@@ -247,7 +246,7 @@ export const GRUPOS = ['Piernas', 'Glúteos', 'Pecho', 'Espalda', 'Hombros', 'Br
 
 export async function loadEjercicios(): Promise<Ejercicio[]> {
   const docs = await store.list(COL.exercises)
-  const byId = new Map<string, Ejercicio>(BASE_EJERCICIOS.map((e) => [e.id, { ...e, video: '' }]))
+  const byId = new Map<string, Ejercicio>(BASE_EJERCICIOS.map((e) => [e.id, { ...e }]))
   for (const d of docs) {
     // Los de base no se pueden borrar del código: al eliminarlos quedan marcados como ocultos.
     if (d.data.oculto) {
@@ -255,7 +254,7 @@ export async function loadEjercicios(): Promise<Ejercicio[]> {
       continue
     }
     const prev = byId.get(d.id)
-    byId.set(d.id, { id: d.id, nombre: String(d.data.nombre ?? prev?.nombre ?? d.id), grupo: (d.data.grupo as string) ?? prev?.grupo ?? null, video: String(d.data.video ?? '') })
+    byId.set(d.id, { id: d.id, nombre: String(d.data.nombre ?? prev?.nombre ?? d.id), grupo: (d.data.grupo as string) ?? prev?.grupo ?? null })
   }
   return [...byId.values()].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
 }
@@ -264,9 +263,9 @@ export async function loadEjercicios(): Promise<Ejercicio[]> {
  * Crea o edita un ejercicio. Al renombrarlo se conserva el id (la clave del historial); los planes ya
  * armados guardan su propia copia del nombre, así que no cambian.
  */
-export async function guardarEjercicio(e: { nombre: string; grupo: string | null; video: string }, id = slugify(e.nombre)): Promise<string> {
+export async function guardarEjercicio(e: { nombre: string; grupo: string | null }, id = slugify(e.nombre)): Promise<string> {
   await store.write([
-    { type: 'set', path: `${COL.exercises}/${id}`, data: { nombre: e.nombre.trim(), grupo: e.grupo?.trim() || null, video: e.video.trim(), oculto: false, updatedAt: Date.now() }, merge: true },
+    { type: 'set', path: `${COL.exercises}/${id}`, data: { nombre: e.nombre.trim(), grupo: e.grupo?.trim() || null, oculto: false, updatedAt: Date.now() }, merge: true },
   ])
   return id
 }

@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react'
 
-/** Si el bloque actual tiene indicación o video del profe, el encabezado muestra el botón para verlos. */
+/** Si el bloque actual tiene indicación del profe, el encabezado muestra el botón para verlos. */
 export interface NoteUi {
   available: boolean
   open: () => void

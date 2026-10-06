@@ -1,6 +1,6 @@
 import { slugify } from '../keys'
 
-/** Ejercicios con los que arranca la biblioteca del profe; los que él suma (con su video) quedan en `amExercises`. */
+/** Ejercicios con los que arranca la biblioteca del profe; los que él suma quedan en `amExercises`. */
 const BASE: { nombre: string; grupo: string }[] = [
   { nombre: 'Sentadilla con barra', grupo: 'Piernas' },
   { nombre: 'Sentadilla goblet', grupo: 'Piernas' },

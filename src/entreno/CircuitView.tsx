@@ -42,7 +42,7 @@ export function CircuitView({ w, block, run, now, dispatch, onExit, overlay, ine
             RONDA {run.round} DE {block.rounds}
           </span>
         </div>
-        <NotaEnVivo note={block.note} video={block.video} className={styles.nota} />
+        <NotaEnVivo note={block.note} className={styles.nota} />
         <div className={styles.name} style={{ fontSize: fitFont(step.name, 40) }}>
           {step.name.toUpperCase()}
         </div>

@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { slugify } from '../keys'
-import { youtubeId, youtubeLink, youtubeThumb } from '../youtube'
 import { eliminarEjercicio, GRUPOS, guardarEjercicio, loadEjercicios, type Ejercicio } from './api'
 import { Dialog } from './Dialog'
 import styles from './Ejercicios.module.css'
 import ui from './ui.module.css'
 
-/** Biblioteca del profe: cada ejercicio con su grupo y su video; al sumarlo a un plan, el video viene solo. */
+/** Biblioteca del profe: cada ejercicio con su grupo muscular. */
 export function Ejercicios() {
   const [list, setList] = useState<Ejercicio[] | null>(null)
   const [q, setQ] = useState('')
@@ -30,7 +29,6 @@ export function Ejercicios() {
     const t = slugify(q)
     return (list ?? []).filter((e) => (!t || e.id.includes(t) || slugify(e.nombre).includes(t)) && (!grupo || e.grupo === grupo))
   }, [list, q, grupo])
-  const conVideo = list?.filter((e) => e.video).length ?? 0
 
   return (
     <main className={ui.page}>
@@ -38,7 +36,7 @@ export function Ejercicios() {
         <div>
           <h1 className={ui.title}>EJERCICIOS</h1>
           <div className={ui.sub}>
-            {list ? `${list.length} ejercicios · ${conVideo} con video. ` : ''}Cargá el video de técnica una vez y queda para todos los planes.
+            {list ? `${list.length} ejercicios. ` : ''}Los que sumás acá quedan para todos los planes.
           </div>
         </div>
         <button className={ui.primary} onClick={() => setEditando('nuevo')}>
@@ -66,19 +64,8 @@ export function Ejercicios() {
 
       <ul className={styles.list}>
         {visible.map((e) => {
-          const id = youtubeId(e.video)
           return (
             <li key={e.id} className={styles.row}>
-              {id ? (
-                <a href={youtubeLink(e.video) ?? '#'} target="_blank" rel="noreferrer" aria-label={`Ver el video de ${e.nombre}`} className={styles.thumbLink}>
-                  <img className={styles.thumb} src={youtubeThumb(id)} alt="" width={96} height={54} loading="lazy" />
-                  <span className={styles.play} aria-hidden="true">
-                    ▶
-                  </span>
-                </a>
-              ) : (
-                <div className={styles.thumbEmpty}>Sin video</div>
-              )}
               <div className={styles.info}>
                 <div className={styles.name}>{e.nombre}</div>
                 <div className={ui.hint}>{e.grupo ?? 'Sin grupo'}</div>
@@ -152,14 +139,11 @@ function EditarDialog({
 }) {
   const [nombre, setNombre] = useState(e?.nombre ?? nombreInicial)
   const [grupo, setGrupo] = useState(e?.grupo ?? '')
-  const [video, setVideo] = useState(e?.video ?? '')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const vid = youtubeId(video)
-  const videoMal = !!video.trim() && !vid
   // Un ejercicio nuevo con el nombre de otro que ya existe lo pisaría.
   const repetido = !e && existentes.some((x) => x.id === slugify(nombre))
-  const ok = !!nombre.trim() && !videoMal && !repetido
+  const ok = !!nombre.trim() && !repetido
 
   const submit = async (ev: FormEvent) => {
     ev.preventDefault()
@@ -167,7 +151,7 @@ function EditarDialog({
     setBusy(true)
     setError(null)
     try {
-      await guardarEjercicio({ nombre: nombre.replace(/\s+/g, ' '), grupo: grupo || null, video }, e?.id)
+      await guardarEjercicio({ nombre: nombre.replace(/\s+/g, ' '), grupo: grupo || null }, e?.id)
       onSaved()
     } catch {
       setError('No se pudo guardar. Probá de nuevo.')
@@ -202,19 +186,6 @@ function EditarDialog({
             <option key={g} value={g} />
           ))}
         </datalist>
-
-        <label htmlFor="ej-video" className={ui.label}>
-          VIDEO DE YOUTUBE
-        </label>
-        <div className={styles.videoRow}>
-          {vid && <img className={styles.thumbSmall} src={youtubeThumb(vid)} alt="" width={80} height={45} />}
-          <input id="ej-video" className={ui.input} inputMode="url" placeholder="Pegá el link (youtube.com o youtu.be)" value={video} aria-invalid={videoMal} onChange={(x) => setVideo(x.target.value)} />
-        </div>
-        {videoMal && (
-          <div className={ui.hint} style={{ marginTop: 6, fontWeight: 600, color: 'var(--ink)' }}>
-            Ese link no es de un video de YouTube.
-          </div>
-        )}
 
         {error && <p className={ui.error}>{error}</p>}
         <div className={ui.actions}>
