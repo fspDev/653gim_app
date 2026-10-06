@@ -4,11 +4,7 @@
   line-height: 0;
 }
 .img img {
-  height: auto;
   max-width: 100%;
-}
-.img img[height] {
-  width: auto;
 }
 
 /* Fondo claro: logo original. Fondo oscuro, o superficie invertida: grises aclarados. Ambas a la vez se anulan. */

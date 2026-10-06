@@ -101,7 +101,7 @@ export function BetweenView({ w, now, dispatch, onExit, overlay, inertFrame }: P
             <div className={styles.pickList}>
               {others.map((b) => (
                 <button key={b.id} className={styles.pickChip} onClick={() => dispatch({ type: 'PICK_BLOCK', blockId: b.id, now: Date.now() })}>
-                  {b.short}
+                  {b.name}
                 </button>
               ))}
             </div>

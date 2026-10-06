@@ -10,10 +10,12 @@ import styles from './Logo.module.css'
  * al revés del fondo (el encabezado oscuro del resumen sobre una paleta clara, por ejemplo).
  */
 function Img({ claro, oscuro, height, width, inverse }: { claro: string; oscuro: string; height?: number; width?: number; inverse: boolean }) {
+  // Se fija una sola medida; la otra sale de la proporción de la imagen.
+  const size = height ? { height, width: 'auto' } : { width, height: 'auto' }
   return (
     <span className={styles.img} data-inverse={inverse} aria-hidden="true">
-      <img className={styles.claro} src={claro} alt="" height={height} width={width} />
-      <img className={styles.oscuro} src={oscuro} alt="" height={height} width={width} />
+      <img className={styles.claro} src={claro} alt="" style={size} />
+      <img className={styles.oscuro} src={oscuro} alt="" style={size} />
     </span>
   )
 }
