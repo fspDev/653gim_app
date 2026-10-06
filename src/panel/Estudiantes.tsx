@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { generarClave, problemaClave, usernameFrom } from '../cuentas'
+import { problemaDni, soloDni, usernameFrom } from '../cuentas'
 import { estadoLabel, DEFAULT_CUOTA } from '../cuotas'
 import { altaEstudiante, loadEstudiantes, type AltaDatos } from './api'
 import { Credenciales, Dialog } from './Dialog'
@@ -10,6 +10,7 @@ import ui from './ui.module.css'
 
 const FILTROS: { value: Filtro; label: string }[] = [
   { value: 'todos', label: 'Todos' },
+  { value: 'semana', label: 'Entrenaron esta semana' },
   { value: 'sin-plan', label: 'Sin plan' },
   { value: 'cuota', label: 'Cuota vencida' },
   { value: 'inactivos', label: 'Más de 10 días sin entrenar' },
@@ -29,7 +30,7 @@ export function Estudiantes() {
         setError(null)
         setRows(list.map((r) => buildFila(r.e, r.e.rutina?.dias ?? null, r.entrenos, r.cuota, now)))
       })
-      .catch(() => setError('No pudimos cargar los estudiantes. Revisá la conexión y probá de nuevo.'))
+      .catch(() => setError('No pudimos cargar los socios. Revisá la conexión y probá de nuevo.'))
   }, [])
 
   useEffect(load, [load])
@@ -42,19 +43,19 @@ export function Estudiantes() {
     <main className={ui.page}>
       <div className={styles.head}>
         <div>
-          <h1 className={ui.title}>ESTUDIANTES</h1>
+          <h1 className={ui.title}>SOCIOS</h1>
           <div className={ui.sub}>
-            {rows ? `${rows.length} ${rows.length === 1 ? 'estudiante' : 'estudiantes'} · ${semana} entrenaron esta semana${vencidas ? ` · ${vencidas} con la cuota vencida` : ''}` : 'Cargando…'}
+            {rows ? `${rows.length} ${rows.length === 1 ? 'socio' : 'socios'} · ${semana} entrenaron esta semana${vencidas ? ` · ${vencidas} con la cuota vencida` : ''}` : 'Cargando…'}
           </div>
         </div>
         <button className={ui.primary} onClick={() => setAlta(true)}>
-          + NUEVO ESTUDIANTE
+          + NUEVO SOCIO
         </button>
       </div>
 
       <div className={styles.tools}>
         <label htmlFor="buscar" className={ui.srOnly}>
-          Buscar estudiante
+          Buscar socio
         </label>
         <input id="buscar" className={`${ui.input} ${styles.search}`} placeholder="Buscar por nombre" value={query} onChange={(e) => setQuery(e.target.value)} />
         <div className={styles.filters} role="group" aria-label="Filtros">
@@ -116,7 +117,7 @@ export function Estudiantes() {
         })}
       </ul>
       {rows && visible.length === 0 && !error && (
-        <p className={ui.empty}>{rows.length === 0 ? 'Todavía no tenés estudiantes. Con "Nuevo estudiante" das de alta al primero y le generás su contraseña.' : 'Nadie coincide con la búsqueda o el filtro.'}</p>
+        <p className={ui.empty}>{rows.length === 0 ? 'Todavía no tenés socios. Con "Nuevo socio" das de alta al primero.' : 'Nadie coincide con la búsqueda o el filtro.'}</p>
       )}
 
       {alta && (
@@ -131,15 +132,16 @@ export function Estudiantes() {
   )
 }
 
-/** Alta: el usuario sale de nombre.apellido y la contraseña la genera la app (se puede cambiar). */
+/** Alta: el usuario sale de nombre.apellido y la contraseña es el DNI (como siempre en el 653). */
 function AltaDialog({ onClose }: { onClose: () => void }) {
-  const [d, setD] = useState<AltaDatos>(() => ({ nombre: '', apellido: '', telefono: '', objetivo: '', cuota: { ...DEFAULT_CUOTA }, clave: generarClave() }))
+  const [d, setD] = useState<AltaDatos>(() => ({ nombre: '', apellido: '', dni: '', telefono: '', profe: '', objetivo: '', cuota: { ...DEFAULT_CUOTA } }))
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [hecho, setHecho] = useState<{ username: string } | null>(null)
   const set = <K extends keyof AltaDatos>(k: K, v: AltaDatos[K]) => setD((x) => ({ ...x, [k]: v }))
-  const problema = problemaClave(d.clave)
-  const ok = d.nombre.trim() && d.apellido.trim() && !problema
+  const dni = soloDni(d.dni)
+  const problema = dni ? problemaDni(dni) : null
+  const ok = d.nombre.trim() && d.apellido.trim() && dni && !problema
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
@@ -158,7 +160,7 @@ function AltaDialog({ onClose }: { onClose: () => void }) {
   if (hecho) {
     return (
       <Dialog title="¡LISTO!" text={`${d.nombre.trim()} ya puede entrar. Pasale estos datos: después le armás el plan.`} onClose={onClose}>
-        <Credenciales username={hecho.username} clave={d.clave} nombre={d.nombre.trim()} telefono={d.telefono} />
+        <Credenciales username={hecho.username} clave={dni} nombre={d.nombre.trim()} telefono={d.telefono} />
         <div className={ui.actions}>
           <button className={ui.secondary} onClick={onClose}>
             CERRAR
@@ -171,7 +173,7 @@ function AltaDialog({ onClose }: { onClose: () => void }) {
   const preview = usernameFrom(d.nombre, d.apellido)
 
   return (
-    <Dialog title="NUEVO ESTUDIANTE" onClose={onClose}>
+    <Dialog title="NUEVO SOCIO" onClose={onClose}>
       <form onSubmit={submit}>
         <div className={ui.cols2}>
           <div>
@@ -191,23 +193,23 @@ function AltaDialog({ onClose }: { onClose: () => void }) {
           {preview ? `Usuario: ${preview} (si ya existe, se le suma un número)` : 'El usuario se arma con nombre.apellido'}
         </div>
 
-        <label htmlFor="alta-clave" className={ui.label}>
-          CONTRASEÑA
+        <label htmlFor="alta-dni" className={ui.label}>
+          DNI (ES LA CONTRASEÑA)
         </label>
-        <div className={styles.claveRow}>
-          <input id="alta-clave" className={ui.input} value={d.clave} onChange={(e) => set('clave', e.target.value.trim())} aria-invalid={!!problema} spellCheck={false} />
-          <button type="button" className={ui.ghost} onClick={() => set('clave', generarClave())}>
-            Otra
-          </button>
-        </div>
+        <input id="alta-dni" className={ui.input} inputMode="numeric" placeholder="Sin puntos" value={d.dni} onChange={(e) => set('dni', e.target.value)} aria-invalid={!!problema} required />
         <div className={ui.hint} style={{ marginTop: 6 }}>
-          {problema ?? 'La puede cambiar después desde su Perfil.'}
+          {problema ?? 'Entra con su nombre y apellido y el DNI. Después la puede cambiar desde su Perfil.'}
         </div>
 
         <label htmlFor="alta-tel" className={ui.label}>
           TELÉFONO (WHATSAPP)
         </label>
         <input id="alta-tel" className={ui.input} inputMode="tel" placeholder="351 555 0102" value={d.telefono} onChange={(e) => set('telefono', e.target.value)} />
+
+        <label htmlFor="alta-profe" className={ui.label}>
+          PROFE
+        </label>
+        <input id="alta-profe" className={ui.input} placeholder="Opcional" value={d.profe} onChange={(e) => set('profe', e.target.value)} />
 
         <label htmlFor="alta-obj" className={ui.label}>
           OBJETIVO
@@ -223,7 +225,7 @@ function AltaDialog({ onClose }: { onClose: () => void }) {
               id="alta-monto"
               className={ui.input}
               inputMode="numeric"
-              placeholder="0 = sin cuota"
+              placeholder="0 = la marcás a mano"
               value={d.cuota.monto || ''}
               onChange={(e) => set('cuota', { ...d.cuota, monto: Number(e.target.value.replace(/\D/g, '')) || 0 })}
             />

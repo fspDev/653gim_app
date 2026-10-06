@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
 import { fmtKg, fmtTime } from '../format'
 import { slugify } from '../keys'
 import {
@@ -20,6 +20,7 @@ import { toDayDocs } from '../rutina/firestoreRutina'
 import { uuid } from '../uuid'
 import { fullName, loadEjercicios, loadEstudiante, loadEstudiantes, planVacio, publicarPlan, type Ejercicio } from './api'
 import { Dialog } from './Dialog'
+import { useDragSort } from './dragSort'
 import styles from './EditorPlan.module.css'
 import type { TabProps } from './Estudiante'
 import ui from './ui.module.css'
@@ -61,6 +62,12 @@ export function EditorPlan({ d, reload }: TabProps) {
   const [error, setError] = useState<string | null>(null)
   const [ok, setOk] = useState(false)
   const [picker, setPicker] = useState(false)
+  // Arrastrar un bloque a otra posición del día que se está viendo.
+  const moverArrastrando = useCallback(
+    (from: number, to: number) => setRutina((r) => (r ? moveBloque(r, (r.dias.find((x) => x.id === diaId) ?? r.dias[0]).id, from, to) : r)),
+    [diaId],
+  )
+  const sort = useDragSort<HTMLOListElement>(moverArrastrando)
   const [ejercicios, setEjercicios] = useState<Ejercicio[]>([])
 
   useEffect(() => {
@@ -156,12 +163,15 @@ export function EditorPlan({ d, reload }: TabProps) {
         </div>
       </div>
 
-      <ol className={styles.list}>
+      <ol className={styles.list} ref={sort.listRef}>
         {dia.bloques.map((b, i) => (
           <BloqueCard
             key={b.id}
             b={b}
             index={i}
+            style={sort.itemStyle(i)}
+            dragging={sort.dragging === i}
+            handle={sort.handleProps(i)}
             last={dia.bloques.length - 1}
             onPatch={(p) => update((r) => patchBloque(r, dia.id, b.id, p))}
             onRemove={() => update((r) => removeBloque(r, dia.id, b.id))}
@@ -195,7 +205,7 @@ export function EditorPlan({ d, reload }: TabProps) {
         )}
       </div>
       <p className={ui.hint} style={{ marginTop: 16 }}>
-        El peso es el de arranque: después el estudiante sigue desde el último que usó, y la app le sugiere +2,5 kg cuando completa todo. Si cambiás el peso y publicás, manda el tuyo.
+        El peso es el de arranque: después el socio sigue desde el último que usó, y la app le sugiere +2,5 kg cuando completa todo. Si cambiás el peso y publicás, manda el tuyo.
       </p>
 
       {picker && (
@@ -243,7 +253,7 @@ function SinPlan({ sid, nombre, onCrear }: { sid: string; nombre: string; onCrea
       {otros.length > 0 && (
         <>
           <label htmlFor="copiar-de" className={ui.label}>
-            O COPIÁ EL PLAN DE OTRO ESTUDIANTE
+            O COPIÁ EL PLAN DE OTRO SOCIO
           </label>
           <div className={styles.copyRow}>
             <select id="copiar-de" className={ui.select} value={desde} onChange={(e) => setDesde(e.target.value)}>
@@ -300,9 +310,12 @@ interface CardProps {
   onPatch: (p: Partial<EBloque>) => void
   onRemove: () => void
   onMove: (to: number) => void
+  style?: CSSProperties
+  dragging: boolean
+  handle: { onPointerDown: (e: ReactPointerEvent<HTMLElement>) => void }
 }
 
-function BloqueCard({ b, index, last, onPatch, onRemove, onMove }: CardProps) {
+function BloqueCard({ b, index, last, onPatch, onRemove, onMove, style, dragging, handle }: CardProps) {
   const [open, setOpen] = useState(!!b.comentario?.trim())
   const kind = b.tipo === 'fuerza' ? 'Fuerza' : b.tipo === 'tiempo' ? 'Por tiempo' : 'Circuito'
   const int = (key: 'series' | 'reps' | 'minutos' | 'rondas', min: number) => (t: string) => {
@@ -313,9 +326,20 @@ function BloqueCard({ b, index, last, onPatch, onRemove, onMove }: CardProps) {
   }
 
   return (
-    <li className={styles.card}>
+    <li className={styles.card} style={style} data-dragging={dragging}>
       <div className={styles.cardHead}>
-        <span className={styles.n}>{index + 1}</span>
+        <button
+          type="button"
+          className={styles.handle}
+          aria-label={`Mover ${b.nombre}. Arrastrá, o usá las flechas arriba y abajo.`}
+          {...handle}
+          onKeyDown={(e) => {
+            if (e.key === 'ArrowUp' && index > 0) (e.preventDefault(), onMove(index - 1))
+            if (e.key === 'ArrowDown' && index < last) (e.preventDefault(), onMove(index + 1))
+          }}
+        >
+          <span className={styles.n}>{index + 1}</span>
+        </button>
         <div className={styles.cardName}>
           <input
             className={styles.nameField}
@@ -389,7 +413,7 @@ function BloqueCard({ b, index, last, onPatch, onRemove, onMove }: CardProps) {
       {open ? (
         <div className={styles.extra}>
           <label className={styles.text}>
-            <span className={styles.numLabel}>Indicación para el estudiante</span>
+            <span className={styles.numLabel}>Indicación para el socio</span>
             <textarea className={styles.textArea} rows={2} value={b.comentario ?? ''} placeholder="Ej.: bajá en 3 segundos, rodillas hacia afuera" onChange={(e) => onPatch({ comentario: e.target.value })} />
           </label>
         </div>

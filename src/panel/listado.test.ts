@@ -25,4 +25,11 @@ describe('listado de estudiantes', () => {
     expect(countBy([a, b], 'sin-plan')).toBe(1)
     expect(countBy([a, b], 'cuota')).toBe(1)
   })
+
+  it('filtra a los que entrenaron esta semana', () => {
+    const hoy = buildFila(base, 2, [now - 60_000], { tipo: 'sin-cuota' }, now)
+    const nunca = buildFila({ ...base, id: 's2' }, 2, [], { tipo: 'sin-cuota' }, now)
+    expect(matches(hoy, 'semana', '')).toBe(true)
+    expect(matches(nunca, 'semana', '')).toBe(false)
+  })
 })

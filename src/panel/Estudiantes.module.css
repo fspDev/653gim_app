@@ -137,11 +137,4 @@
   }
 }
 
-.claveRow {
-  display: flex;
-  gap: 8px;
-  align-items: flex-end;
-}
-.claveRow .ghostBtn {
-  flex-shrink: 0;
-}
+

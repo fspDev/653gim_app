@@ -22,7 +22,7 @@ export function Cuotas({ d, reload }: TabProps) {
   const [dia, setDia] = useState(d.e.cuota?.dia ?? 10)
   const [msg, setMsg] = useState<string | null>(null)
   const [pagar, setPagar] = useState<string | null>(null)
-  const estado = estadoCuota(d.e.cuota, d.pagos, d.e.createdAt, now)
+  const estado = estadoCuota(d.e.cuota, d.pagos, d.e.createdAt, now, d.e.cuotaManual)
   const tone = cuotaTone(estado)
   const pagados = new Map(d.pagos.map((p) => [p.periodo, p]))
   // Los meses que corresponden y el que viene (para poder adelantar).
@@ -33,9 +33,14 @@ export function Cuotas({ d, reload }: TabProps) {
     estado.tipo === 'vencida' || estado.tipo === 'por-vencer'
       ? whatsappLink(
           d.e.telefono,
-          estado.tipo === 'vencida'
-            ? `Hola ${first}! Te recuerdo que está pendiente la cuota de ${estado.meses.map((m) => periodoLabel(m, true)).join(', ')} (${fmtPesos(d.e.cuota.monto)} por mes). ¡Gracias!`
-            : `Hola ${first}! Te recuerdo que el ${Number(estado.vence.slice(8))} vence la cuota de ${periodoLabel(estado.vence.slice(0, 7), true)} (${fmtPesos(d.e.cuota.monto)}). ¡Gracias!`,
+          // Sin monto la cuota se marca a mano (Ficha): el mensaje no habla de meses ni de pesos.
+          !d.e.cuota?.monto
+            ? estado.tipo === 'vencida'
+              ? `Hola ${first}! Te recuerdo que tenés la cuota pendiente. ¡Gracias!`
+              : `Hola ${first}! Te recuerdo que el ${Number(estado.vence.slice(8))}/${Number(estado.vence.slice(5, 7))} vence tu cuota. ¡Gracias!`
+            : estado.tipo === 'vencida'
+              ? `Hola ${first}! Te recuerdo que está pendiente la cuota de ${estado.meses.map((m) => periodoLabel(m, true)).join(', ')} (${fmtPesos(d.e.cuota.monto)} por mes). ¡Gracias!`
+              : `Hola ${first}! Te recuerdo que el ${Number(estado.vence.slice(8))} vence la cuota de ${periodoLabel(estado.vence.slice(0, 7), true)} (${fmtPesos(d.e.cuota.monto)}). ¡Gracias!`,
         )
       : null
 

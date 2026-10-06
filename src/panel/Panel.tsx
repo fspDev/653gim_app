@@ -31,7 +31,7 @@ export function Panel() {
         </div>
         <nav className={styles.nav} aria-label="Panel">
           <NavLink to="/panel" end className={styles.link}>
-            Estudiantes
+            Socios
           </NavLink>
           <NavLink to="/panel/ejercicios" className={styles.link}>
             Ejercicios

@@ -49,7 +49,7 @@ export function Estudiante({ sid: sidProp, propio = false }: { sid?: string; pro
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M15 6l-6 6 6 6" />
       </svg>
-      {propio ? 'Panel' : 'Estudiantes'}
+      {propio ? 'Panel' : 'Socios'}
     </Link>
   )
 
@@ -58,7 +58,7 @@ export function Estudiante({ sid: sidProp, propio = false }: { sid?: string; pro
       <main className={ui.page}>
         {back}
         <p className={ui.error} role="alert">
-          No pudimos cargar al estudiante. Revisá la conexión y probá de nuevo.
+          No pudimos cargar al socio. Revisá la conexión y probá de nuevo.
         </p>
       </main>
     )
@@ -67,7 +67,7 @@ export function Estudiante({ sid: sidProp, propio = false }: { sid?: string; pro
   if (d === null) return <Navigate to="/panel" replace />
 
   const last = d.entrenos[0]?.empezadoAt ?? null
-  const cuota = estadoCuota(d.e.cuota, d.pagos, d.e.createdAt, now)
+  const cuota = estadoCuota(d.e.cuota, d.pagos, d.e.createdAt, now, d.e.cuotaManual)
   const tone = cuotaTone(cuota)
 
   return (
@@ -97,7 +97,7 @@ export function Estudiante({ sid: sidProp, propio = false }: { sid?: string; pro
         )}
       </div>
 
-      <nav className={styles.tabs} aria-label="Secciones del estudiante">
+      <nav className={styles.tabs} aria-label="Secciones del socio">
         {TABS.filter((t) => !(propio && t.soloEstudiantes)).map((t) => (
           <NavLink key={t.label} to={`${base}${t.to ? `/${t.to}` : ''}`} end={t.end} className={styles.tab}>
             {t.label}

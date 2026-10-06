@@ -1,7 +1,7 @@
 import { authApi, store } from '../backend'
 import { AuthError, type WriteOp } from '../backend/types'
-import { emailFor, nextFreeUsername, usernameFrom } from '../cuentas'
-import { estadoCuota, type CuotaConfig, type EstadoCuota, type Pago } from '../cuotas'
+import { emailFor, nextFreeUsername, problemaDni, soloDni, usernameFrom } from '../cuentas'
+import { estadoCuota, type CuotaConfig, type CuotaManual, type EstadoCuota, type Pago } from '../cuotas'
 import type { SerieRow } from '../db'
 import { COL } from '../firebase'
 import { slugify } from '../keys'
@@ -23,10 +23,16 @@ export interface StudentDoc {
   email: string
   telefono: string
   objetivo: string
+  /** DNI sin puntos: es la contraseña con la que entra (y vuelve a serlo si el profe la cambia). */
+  dni?: string
+  /** Profe que lo atiende en el gimnasio (texto libre, opcional). */
+  profe?: string
   createdAt: number
   ultimoAcceso?: number
   rutina: RutinaMeta | null
   cuota: CuotaConfig
+  /** Cuota marcada a mano (sin monto): al día y hasta cuándo. */
+  cuotaManual?: CuotaManual | null
   exercisePrefs?: Record<string, ExercisePref>
 }
 
@@ -80,7 +86,7 @@ export async function loadEstudiantes(now = Date.now()): Promise<Resumen[]> {
         e,
         entrenos: logs.map((l) => Number(l.data.empezadoAt)).filter(Boolean),
         pagos: ps,
-        cuota: estadoCuota(e.cuota, ps, e.createdAt, now),
+        cuota: estadoCuota(e.cuota, ps, e.createdAt, now, e.cuotaManual),
       }
     }),
   )
@@ -144,10 +150,12 @@ const numeroDe = (email: string) => Number(/\+(\d+)@/.exec(email)?.[1] ?? 1)
 export interface AltaDatos {
   nombre: string
   apellido: string
+  /** Con o sin puntos: se guarda solo con números y es la contraseña. */
+  dni: string
   telefono: string
+  profe: string
   objetivo: string
   cuota: CuotaConfig
-  clave: string
 }
 
 export async function altaEstudiante(d: AltaDatos): Promise<{ sid: string; username: string }> {
@@ -159,8 +167,11 @@ export async function altaEstudiante(d: AltaDatos): Promise<{ sid: string; usern
     if (!(await store.get(`${COL.logins}/${u}`))) break
     taken.add(u)
   }
+  const dni = soloDni(d.dni)
+  const problema = problemaDni(dni)
+  if (problema) throw new Error(problema)
   const username = nextFreeUsername(base, (u) => taken.has(u))
-  const { uid, email } = await crearCuenta(username, d.clave)
+  const { uid, email } = await crearCuenta(username, dni)
   const sid = uuid()
   const ficha: StudentDoc = {
     nombre: d.nombre.trim(),
@@ -170,9 +181,13 @@ export async function altaEstudiante(d: AltaDatos): Promise<{ sid: string; usern
     email,
     telefono: d.telefono.trim(),
     objetivo: d.objetivo.trim(),
+    dni,
+    profe: d.profe.trim(),
     createdAt: Date.now(),
     rutina: null,
     cuota: d.cuota,
+    // Recién anotado: al día, sin fecha hasta que el profe la cargue.
+    cuotaManual: { alDia: true, vence: null },
   }
   await store.write([
     { type: 'set', path: sPath(sid), data: { ...ficha } },
@@ -193,8 +208,30 @@ export async function resetClave(e: Estudiante, clave: string): Promise<void> {
   ])
 }
 
-export async function updateFicha(sid: string, patch: Pick<StudentDoc, 'nombre' | 'apellido' | 'telefono' | 'objetivo'>) {
-  await store.write([{ type: 'update', path: sPath(sid), data: { nombre: patch.nombre.trim(), apellido: patch.apellido.trim(), telefono: patch.telefono.trim(), objetivo: patch.objetivo.trim() } }])
+/** Cambia el DNI y, con él, la contraseña (misma mecánica que `resetClave`). */
+export async function cambiarDni(e: Estudiante, dniTexto: string): Promise<void> {
+  const dni = soloDni(dniTexto)
+  const problema = problemaDni(dni)
+  if (problema) throw new Error(problema)
+  await resetClave(e, dni)
+  await store.write([{ type: 'update', path: sPath(e.id), data: { dni } }])
+}
+
+export async function updateFicha(sid: string, patch: Pick<StudentDoc, 'nombre' | 'apellido' | 'telefono' | 'objetivo'> & { profe: string; cuotaManual: CuotaManual }) {
+  await store.write([
+    {
+      type: 'update',
+      path: sPath(sid),
+      data: {
+        nombre: patch.nombre.trim(),
+        apellido: patch.apellido.trim(),
+        telefono: patch.telefono.trim(),
+        objetivo: patch.objetivo.trim(),
+        profe: patch.profe.trim(),
+        cuotaManual: patch.cuotaManual,
+      },
+    },
+  ])
 }
 
 /** Borra todo del estudiante. Su cuenta interna queda sin acceso (sin servidor no se puede borrar). */

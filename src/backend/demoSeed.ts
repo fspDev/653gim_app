@@ -8,7 +8,8 @@ import type { Data } from './types'
 
 /**
  * Datos de ejemplo del modo demo. Cuentas (solo existen en este navegador):
- * profe andres.millares / demo1234 · estudiantes juan.perez, lucia.gomez y martin.diaz / demo1234.
+ * profe admin / demo1234 · socios juan.perez (30111222), lucia.gomez (31222333) y martin.diaz (40333444):
+ * la contraseña de cada socio es su DNI.
  */
 
 const DAY = 24 * 60 * 60 * 1000
@@ -100,23 +101,23 @@ export function demoSeed(now = Date.now()) {
   const docs: Record<string, Data> = {}
   const users: Record<string, { uid: string; password: string }> = {}
 
-  const profeEmail = emailFor('andres.millares')
+  const profeEmail = emailFor('admin')
   users[profeEmail] = { uid: 'demo-profe', password: DEMO_CLAVE }
-  docs[`${COL.config}/profe`] = { uid: 'demo-profe', nombre: 'Andrés', apellido: 'Millares', username: 'andres.millares', createdAt: now - 120 * DAY }
-  docs[`${COL.logins}/andres.millares`] = { email: profeEmail, rol: 'profe' }
+  docs[`${COL.config}/profe`] = { uid: 'demo-profe', nombre: 'Profe', apellido: '653', username: 'admin', createdAt: now - 120 * DAY }
+  docs[`${COL.logins}/admin`] = { email: profeEmail, rol: 'profe' }
 
   const actual = periodoOf(new Date(now))
   const alumnos = [
-    { sid: 'demo-juan', nombre: 'Juan', apellido: 'Pérez', tel: '351 555 0101', objetivo: 'Ganar fuerza y bajar 4 kg', alta: now - 75 * DAY, plan: true, sesiones: 16, pagos: [-3, -2, -1, 0] },
-    { sid: 'demo-lucia', nombre: 'Lucía', apellido: 'Gómez', tel: '351 555 0102', objetivo: 'Volver a entrenar después de una lesión de rodilla', alta: now - 50 * DAY, plan: true, sesiones: 5, pagos: [-1] },
-    { sid: 'demo-martin', nombre: 'Martín', apellido: 'Díaz', tel: '', objetivo: '', alta: now - 2 * DAY, plan: false, sesiones: 0, pagos: [] },
+    { sid: 'demo-juan', nombre: 'Juan', apellido: 'Pérez', dni: '30111222', profe: 'Nico', monto: 35000, tel: '351 555 0101', objetivo: 'Ganar fuerza y bajar 4 kg', alta: now - 75 * DAY, plan: true, sesiones: 16, pagos: [-3, -2, -1, 0] },
+    { sid: 'demo-lucia', nombre: 'Lucía', apellido: 'Gómez', dni: '31222333', profe: 'Nico', monto: 35000, tel: '351 555 0102', objetivo: 'Volver a entrenar después de una lesión de rodilla', alta: now - 50 * DAY, plan: true, sesiones: 5, pagos: [-1] },
+    { sid: 'demo-martin', nombre: 'Martín', apellido: 'Díaz', dni: '40333444', profe: '', monto: 0, tel: '', objetivo: '', alta: now - 2 * DAY, plan: false, sesiones: 0, pagos: [] },
   ]
 
   for (const a of alumnos) {
     const username = slugify(`${a.nombre} ${a.apellido}`).replace(/-/g, '.')
     const email = emailFor(username)
     const uid = `demo-uid-${a.sid}`
-    users[email] = { uid, password: DEMO_CLAVE }
+    users[email] = { uid, password: a.dni }
     docs[`${COL.logins}/${username}`] = { email, sid: a.sid, rol: 'estudiante' }
     const plan = planJuan()
     docs[`${COL.students}/${a.sid}`] = {
@@ -127,10 +128,14 @@ export function demoSeed(now = Date.now()) {
       email,
       telefono: a.tel,
       objetivo: a.objetivo,
+      dni: a.dni,
+      profe: a.profe,
       createdAt: a.alta,
       ultimoAcceso: a.sesiones ? now - DAY : undefined,
       rutina: a.plan ? { nombre: plan.nombre, version: 1, publicadaAt: a.alta + DAY, dias: plan.dias.length } : null,
-      cuota: { monto: 35000, dia: 10 },
+      cuota: { monto: a.monto, dia: 10 },
+      // Sin monto, la cuota se marca a mano (como en la app anterior del 653).
+      cuotaManual: a.monto ? null : { alDia: true, vence: localDateKey(now + 26 * DAY) },
     }
     if (a.plan) for (const d of toDayDocs(plan, a.alta + DAY)) docs[`${COL.students}/${a.sid}/days/${d.id}`] = { ...d, id: undefined }
     for (const [id, log] of Object.entries(logsFor(plan, a.sesiones, now))) docs[`${COL.students}/${a.sid}/logs/${id}`] = log

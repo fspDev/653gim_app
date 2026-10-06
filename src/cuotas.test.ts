@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { estadoCuota, estadoLabel, mesesCorrespondientes, periodoLabel } from './cuotas'
+import { estadoCuota, estadoLabel, estadoManual, mesesCorrespondientes, periodoLabel } from './cuotas'
 
 const at = (iso: string) => new Date(`${iso}T12:00:00`).getTime()
 const cfg = { monto: 30000, dia: 10 }
@@ -38,5 +38,34 @@ describe('cuotas', () => {
 
   it('nombre del mes', () => {
     expect(periodoLabel('2026-10')).toBe('octubre 2026')
+  })
+})
+
+describe('cuota marcada a mano (sin monto)', () => {
+  const sinMonto = { monto: 0, dia: 10 }
+  const hoy = at('2026-10-06')
+
+  it('al día con fecha lejana: al día hasta esa fecha', () => {
+    const e = estadoCuota(sinMonto, [], at('2026-01-01'), hoy, { alDia: true, vence: '2026-11-05' })
+    expect(e).toEqual({ tipo: 'al-dia', proximo: '2026-11-05' })
+    expect(estadoLabel(e)).toBe('Al día · próxima 5/11')
+  })
+
+  it('a pocos días de la fecha: por vencer', () => {
+    expect(estadoManual({ alDia: true, vence: '2026-10-09' }, hoy)).toEqual({ tipo: 'por-vencer', vence: '2026-10-09', dias: 3 })
+  })
+
+  it('pasada la fecha, o marcada como no pagada: vencida', () => {
+    expect(estadoLabel(estadoManual({ alDia: true, vence: '2026-10-05' }, hoy))).toBe('Cuota vencida')
+    expect(estadoManual({ alDia: false, vence: '2026-12-01' }, hoy).tipo).toBe('vencida')
+  })
+
+  it('al día sin fecha', () => {
+    expect(estadoLabel(estadoManual({ alDia: true, vence: null }, hoy))).toBe('Al día')
+  })
+
+  it('con monto cargado mandan los pagos, aunque esté marcada a mano', () => {
+    const e = estadoCuota(cfg, [{ periodo: '2026-10' }], at('2026-10-01'), hoy, { alDia: false, vence: null })
+    expect(e.tipo).toBe('al-dia')
   })
 })

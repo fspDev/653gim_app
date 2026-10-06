@@ -32,13 +32,14 @@ export function emailFor(username: string, n = 1): string {
   return n <= 1 ? `${username}@${EMAIL_DOMAIN}` : `${username}+${n}@${EMAIL_DOMAIN}`
 }
 
-const WORDS = ['fuerza', 'banco', 'barra', 'serie', 'pesas', 'remo', 'salto', 'plancha', 'trote', 'sprint', 'core', 'meta', 'ritmo', 'pulso', 'reto', 'tempo']
+/** "30.123.456" → "30123456": el DNI solo con números (así es la contraseña de los socios). */
+export const soloDni = (texto: string) => texto.replace(/\D/g, '')
 
-/** Contraseña fácil de dictar o mandar por WhatsApp: "remo-4827". */
-export function generarClave(rand: () => number = Math.random): string {
-  const word = WORDS[Math.floor(rand() * WORDS.length)]
-  const num = String(Math.floor(rand() * 9000) + 1000)
-  return `${word}-${num}`
+/** `null` si el DNI (ya sin puntos) sirve de contraseña; si no, qué le falta. */
+export function problemaDni(dni: string): string | null {
+  if (dni.length < 6) return 'El DNI tiene que tener al menos 6 números.'
+  if (dni.length > 9) return 'Ese DNI tiene demasiados números.'
+  return null
 }
 
 /** `null` si sirve; si no, qué le falta. */

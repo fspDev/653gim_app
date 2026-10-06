@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { useAuth } from '../auth/context'
 import { store } from '../backend'
 import { problemaClave } from '../cuentas'
-import { estadoCuota, estadoLabel, fmtPesos, type CuotaConfig } from '../cuotas'
+import { estadoCuota, estadoLabel, fechaCorta, fmtPesos, type CuotaConfig, type CuotaManual } from '../cuotas'
 import { COL } from '../firebase'
 import { fmtTime } from '../format'
 import { useDays } from '../rutina/useDays'
@@ -182,7 +182,7 @@ export function Perfil() {
             <button
               className={styles.small}
               onClick={async () => {
-                const ok = await showAlert('Así te avisa AM 💪', 'Cuando termine el descanso vas a sentir esta vibración.', 'am-prueba')
+                const ok = await showAlert('Así te avisa el 653 💪', 'Cuando termine el descanso vas a sentir esta vibración.', 'am-prueba')
                 setProbado(ok ? 'Enviado. ¿Vibró?' : 'No se pudo mandar')
               }}
             >
@@ -223,9 +223,11 @@ function Cuota({ sid }: { sid: string }) {
       .then(([st, pagos]) => {
         if (cancelled || !st) return
         const cfg = st.cuota as CuotaConfig | undefined
-        const e = estadoCuota(cfg, pagos.map((p) => ({ periodo: String(p.data.periodo) })), Number(st.createdAt ?? Date.now()), Date.now())
-        if (e.tipo === 'sin-cuota' || !cfg) return
-        setTexto({ estado: estadoLabel(e), detalle: `Cuota mensual ${fmtPesos(cfg.monto)} · vence el ${cfg.dia} de cada mes`, alerta: e.tipo === 'vencida' })
+        const manual = (st.cuotaManual as CuotaManual | null | undefined) ?? null
+        const e = estadoCuota(cfg, pagos.map((p) => ({ periodo: String(p.data.periodo) })), Number(st.createdAt ?? Date.now()), Date.now(), manual)
+        if (e.tipo === 'sin-cuota') return
+        const detalle = cfg?.monto ? `Cuota mensual ${fmtPesos(cfg.monto)} · vence el ${cfg.dia} de cada mes` : manual?.vence ? `Pagada hasta el ${fechaCorta(manual.vence)}` : ''
+        setTexto({ estado: estadoLabel(e), detalle, alerta: e.tipo === 'vencida' })
       })
       .catch(() => {
         /* sin señal: no se muestra */

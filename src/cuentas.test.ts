@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { emailFor, generarClave, nextFreeUsername, normalizeUsername, problemaClave, usernameFrom } from './cuentas'
+import { emailFor, nextFreeUsername, normalizeUsername, problemaClave, problemaDni, soloDni, usernameFrom } from './cuentas'
 
 describe('usuarios', () => {
   it('arma nombre.apellido sin acentos ni mayúsculas', () => {
@@ -27,9 +27,11 @@ describe('usuarios', () => {
 })
 
 describe('contraseñas', () => {
-  it('genera palabra-número', () => {
-    expect(generarClave(() => 0)).toBe('fuerza-1000')
-    expect(generarClave()).toMatch(/^[a-z]+-\d{4}$/)
+  it('el DNI se usa sin puntos y tiene que tener entre 6 y 9 números', () => {
+    expect(soloDni('30.123.456')).toBe('30123456')
+    expect(problemaDni(soloDni('30.123.456'))).toBeNull()
+    expect(problemaDni('12345')).not.toBeNull()
+    expect(problemaDni('1234567890')).not.toBeNull()
   })
 
   it('valida largo y espacios', () => {

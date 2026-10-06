@@ -35,7 +35,7 @@ export function Summary({ w, records, streak, onFeeling, onClose }: Props) {
     setShareMsg(null)
     try {
       const blob = await renderStory(card.current)
-      const result = await shareImage(blob, `am-${story.date.replace('.', '-')}.png`, `${story.day} hecho con AM Personal Trainer`)
+      const result = await shareImage(blob, `653-${story.date.replace('.', '-')}.png`, `${story.day} hecho en 653 Gimnasio`)
       if (result === 'downloaded') setShareMsg('Se descargó la imagen. Subila a tu historia.')
     } catch {
       setShareMsg('No pudimos armar la imagen. Probá de nuevo.')

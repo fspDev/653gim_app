@@ -20,7 +20,7 @@ export function MiCuenta() {
       <Clave />
       <Colores />
       <h2 className={ui.section}>MI ENTRENO</h2>
-      <p className={ui.hint}>Con la misma cuenta podés entrenar tu propia rutina en la app, como un estudiante.</p>
+      <p className={ui.hint}>Con la misma cuenta podés entrenar tu propia rutina en la app, como un socio.</p>
       <div className={ui.actions} style={{ justifyContent: 'flex-start' }}>
         <Link to="/panel/mi-rutina" className={ui.ghost}>
           Armar mi rutina

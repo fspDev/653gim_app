@@ -56,8 +56,35 @@ export function mesesCorrespondientes(altaAt: number, now: number): string[] {
   return out
 }
 
-export function estadoCuota(cfg: CuotaConfig | null | undefined, pagos: Pick<Pago, 'periodo'>[], altaAt: number, now: number): EstadoCuota {
-  if (!cfg || !cfg.monto) return { tipo: 'sin-cuota' }
+/**
+ * Cuota marcada a mano, como en la app anterior del 653: el profe dice si está al día y hasta cuándo.
+ * Se usa cuando el socio no tiene monto cargado (si lo tiene, mandan los pagos).
+ */
+export interface CuotaManual {
+  alDia: boolean
+  /** Hasta cuándo está pagada: "AAAA-MM-DD"; null = sin fecha. */
+  vence: string | null
+}
+
+/** Días de anticipación con que una cuota manual pasa a "por vencer". */
+export const AVISO_DIAS = 5
+
+const isoDate = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
+export function estadoManual(m: CuotaManual, now: number): EstadoCuota {
+  if (!m.alDia) return { tipo: 'vencida', meses: [] }
+  if (!m.vence) return { tipo: 'al-dia', proximo: '' }
+  const hoy = isoDate(new Date(now))
+  if (m.vence < hoy) return { tipo: 'vencida', meses: [] }
+  const [y, mo, d] = m.vence.split('-').map(Number)
+  const t = new Date(now)
+  const dias = Math.round((new Date(y, mo - 1, d).getTime() - new Date(t.getFullYear(), t.getMonth(), t.getDate()).getTime()) / 86_400_000)
+  if (dias <= AVISO_DIAS) return { tipo: 'por-vencer', vence: m.vence, dias }
+  return { tipo: 'al-dia', proximo: m.vence }
+}
+
+export function estadoCuota(cfg: CuotaConfig | null | undefined, pagos: Pick<Pago, 'periodo'>[], altaAt: number, now: number, manual?: CuotaManual | null): EstadoCuota {
+  if (!cfg || !cfg.monto) return manual ? estadoManual(manual, now) : { tipo: 'sin-cuota' }
   const pagados = new Set(pagos.map((p) => p.periodo))
   const hoy = new Date(now)
   const actual = periodoOf(hoy)
@@ -79,10 +106,12 @@ export function estadoLabel(e: EstadoCuota): string {
     case 'sin-cuota':
       return 'Sin cuota'
     case 'al-dia':
-      return `Al día · próxima ${fechaCorta(e.proximo)}`
+      return e.proximo ? `Al día · próxima ${fechaCorta(e.proximo)}` : 'Al día'
     case 'por-vencer':
       return e.dias === 0 ? 'Vence hoy' : `Vence el ${fechaCorta(e.vence)}`
     case 'vencida':
+      // Sin meses: cuota marcada a mano como no pagada.
+      if (e.meses.length === 0) return 'Cuota vencida'
       return e.meses.length === 1 ? `Debe ${periodoLabel(e.meses[0], true)}` : `Debe ${e.meses.length} cuotas`
   }
 }

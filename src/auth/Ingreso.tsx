@@ -126,7 +126,7 @@ function CrearProfe({ onVolver }: { onVolver: () => void }) {
 
   return (
     <form className={styles.form} onSubmit={submit} noValidate>
-      <p className={styles.lead}>Cuenta del profe. Se hace una sola vez: desde ahí das de alta a tus estudiantes.</p>
+      <p className={styles.lead}>Cuenta del profe. Se hace una sola vez: desde ahí das de alta a tus socios.</p>
       <div className={styles.grow} />
       <div className={styles.twoCols}>
         <div>

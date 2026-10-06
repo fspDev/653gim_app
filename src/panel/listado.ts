@@ -37,7 +37,7 @@ export interface Fila {
   cuota: EstadoCuota
 }
 
-export type Filtro = 'todos' | 'sin-plan' | 'cuota' | 'inactivos'
+export type Filtro = 'todos' | 'semana' | 'sin-plan' | 'cuota' | 'inactivos'
 
 export function buildFila(
   e: { id: string; nombre: string; apellido: string; username: string; rutina: { nombre?: string } | null },
@@ -68,6 +68,8 @@ export function matches(f: Fila, filtro: Filtro, query: string): boolean {
   switch (filtro) {
     case 'todos':
       return true
+    case 'semana':
+      return f.semana > 0
     case 'sin-plan':
       return f.plan === null
     case 'cuota':

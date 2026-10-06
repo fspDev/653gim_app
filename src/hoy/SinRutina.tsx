@@ -28,7 +28,7 @@ export function SinRutina() {
       </div>
       {profile?.rol === 'profe' ? (
         <>
-          <p className={styles.text}>Todavía no armaste tu rutina. La armás desde el panel, igual que la de tus estudiantes.</p>
+          <p className={styles.text}>Todavía no armaste tu rutina. La armás desde el panel, igual que la de tus socios.</p>
           <button className={styles.notify} onClick={() => navigate('/panel/mi-rutina')}>
             ARMAR MI RUTINA
           </button>

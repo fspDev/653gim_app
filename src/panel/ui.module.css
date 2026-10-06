@@ -285,3 +285,47 @@
   color: var(--muted);
   line-height: 1.5;
 }
+
+/* Interruptor (cuota al día). El área táctil llega a 44 px con el margen invisible. */
+.switchRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 44px;
+}
+.switch {
+  position: relative;
+  width: 56px;
+  height: 32px;
+  border-radius: 16px;
+  background: var(--track);
+  flex-shrink: 0;
+}
+.switch::before {
+  content: '';
+  position: absolute;
+  inset: -6px;
+}
+.knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 180ms ease;
+}
+.switch[aria-checked='true'] {
+  background: var(--ink);
+}
+.switch[aria-checked='true'] .knob {
+  transform: translateX(24px);
+  background: var(--accent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .knob {
+    transition: none;
+  }
+}

@@ -196,12 +196,15 @@ for (const u of usuarios.filter((x) => x.data.role === 'client')) {
     telefono: d.phone ?? '',
     objetivo: '',
     dni: d.dni ?? '',
+    profe: d.coachName ?? '',
     createdAt: d.createdAt ?? Date.now(),
     rutina: dayDocs.length
       ? { nombre: d.rutina?.nombre || 'Rutina', version: d.rutina?.version ?? 0, publicadaAt: d.rutina?.publicadaAt ?? 0, dias: dayDocs.length }
       : null,
     // Sin monto: así nadie aparece debiendo meses de golpe. El profe carga el monto desde Cuotas.
     cuota: { monto: 0, dia: vence ? Math.min(28, Math.max(1, Number(vence[1]))) : 10 },
+    // La cuota de la app vieja era a mano (al día / vencida y hasta cuándo): pasa igual.
+    cuotaManual: { alDia: (d.feeStatus ?? 'ok') === 'ok', vence: vence ? d.feeDueDate : null },
     ...(d.exercisePrefs ? { exercisePrefs: d.exercisePrefs } : {}),
   })
   set(`g653Logins/${username}`, { email, sid: u.id, rol: 'estudiante' })

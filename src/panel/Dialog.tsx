@@ -28,7 +28,7 @@ export function Dialog({ title, text, onClose, children }: { title: string; text
 /** Usuario y contraseña listos para pasarle al estudiante (copiar o mandar por WhatsApp). */
 export function Credenciales({ username, clave, nombre, telefono }: { username: string; clave: string; nombre: string; telefono: string }) {
   const url = `${location.origin}${import.meta.env.BASE_URL}`
-  const texto = `Hola ${nombre}! Ya tenés tu plan en la app de AM Personal Trainer 💪\n\nEntrá a ${url}\nUsuario: ${username}\nContraseña: ${clave}\n\nDesde Perfil podés cambiar la contraseña.`
+  const texto = `Hola ${nombre}! Ya tenés tu plan en la app de 653 Gimnasio 💪\n\nEntrá a ${url}\nUsuario: ${username}\nContraseña: ${clave}\n\nDesde Perfil podés cambiar la contraseña.`
   const wa = whatsappLink(telefono, texto)
   return (
     <>
