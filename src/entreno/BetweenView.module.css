@@ -162,3 +162,17 @@
     transition: none;
   }
 }
+button.count {
+  min-height: 44px;
+  padding: 0 6px;
+  color: inherit;
+}
+.other {
+  margin-top: calc(16px * var(--k));
+  min-height: 44px;
+  font-size: 16px;
+  font-weight: 700;
+  text-decoration: underline;
+  color: inherit;
+  align-self: flex-start;
+}

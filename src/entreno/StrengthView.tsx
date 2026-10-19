@@ -2,7 +2,7 @@ import { useEffect, useRef, useSyncExternalStore, type Dispatch, type ReactNode 
 import type { StrengthBlock } from '../data'
 import { fmtKg, fmtTime } from '../format'
 import { useSettings } from '../settings'
-import { secondsLeft, WEIGHT_STEP, type WorkoutAction } from '../workout/reducer'
+import { secondsLeft, WEIGHT_STEP, type WorkoutAction, nextBlock } from '../workout/reducer'
 import type { StrengthRun, Workout } from '../workout/types'
 import { Header } from './Header'
 import { NotaEnVivo } from './NotaEnVivo'
@@ -40,7 +40,7 @@ export function StrengthView({ w, block, run, now, dispatch, onExit, onLog, over
   const { temaDescanso } = useSettings()
   const prefersDark = useSyncExternalStore(subscribeDark, systemDark)
   const dark = temaDescanso === 'oscuro' || (temaDescanso === 'auto' && prefersDark)
-  const next = w.day.blocks[w.index + 1]
+  const next = nextBlock(w)
   const rest = run.phase === 'descanso'
   const remaining = rest ? secondsLeft(run.restEnd, now) : 0
   const warn = rest && remaining > 0 && remaining <= WARN_SECONDS

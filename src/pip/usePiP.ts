@@ -1,3 +1,4 @@
+import { nextBlock } from '../workout/reducer'
 import { useCallback, useEffect, useLayoutEffect, useRef, useSyncExternalStore, type Dispatch } from 'react'
 import { showAlert } from '../notify'
 import { useSettings } from '../settings'
@@ -10,7 +11,7 @@ import { armPiP, closePiP, disarmPiP, disarmPiPSoon, isPiPOpen, isPiPSupported, 
 function alarmOf(w: Workout): { at: number; key: string; title: string; body: string } | null {
   if (w.stage !== 'block') return null
   const block = w.day.blocks[w.index]
-  const next = w.day.blocks[w.index + 1]
+  const next = nextBlock(w)
   const run = w.run
   if (run.kind === 'fuerza' && block.kind === 'fuerza' && run.phase === 'descanso') {
     const last = run.serie >= block.series

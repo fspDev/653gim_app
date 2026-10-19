@@ -1,4 +1,4 @@
-import { secondsLeft } from '../workout/reducer'
+import { secondsLeft, nextBlock } from '../workout/reducer'
 import type { Workout } from '../workout/types'
 
 /** Qué hace cada control de la ventana flotante en este momento (null = no hace nada). */
@@ -75,7 +75,7 @@ function controls(c: Omit<PipControls, 'legend'>): PipControls {
 /** El estado del entreno → lo que dibuja la ventana flotante. Función pura. */
 export function frameOf(w: Workout, now: number): PipFrame {
   const block = w.day.blocks[w.index]
-  const next = w.day.blocks[w.index + 1]
+  const next = nextBlock(w)
   const run = w.run
 
   if (w.stage === 'done') {
@@ -102,7 +102,7 @@ export function frameOf(w: Workout, now: number): PipFrame {
       big: String(left),
       unit: paused ? 'EN PAUSA' : 'ARRANCA SOLO',
       title: (next?.name ?? '').toUpperCase(),
-      sub: `Bloque ${w.index + 2} de ${w.day.blocks.length}`,
+      sub: `Bloque ${next ? w.day.blocks.indexOf(next) + 1 : w.index + 1} de ${w.day.blocks.length}`,
       ring: null,
       countdown: left,
       paused,

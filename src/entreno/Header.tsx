@@ -3,6 +3,7 @@ import { blockProgress } from '../workout/selectors'
 import type { Workout } from '../workout/types'
 import { usePipUi } from '../pip/context'
 import styles from './Header.module.css'
+import { useJumpUi } from './jumpContext'
 
 interface Props {
   w: Workout
@@ -19,6 +20,8 @@ export function Header({ w, now, onExit, absolute }: Props) {
   const elapsed = Math.max(0, Math.floor(((w.finishedAt ?? now) - w.startedAt) / 1000))
   const cls = absolute ? styles.absolute : styles.flow
   const pip = usePipUi()
+  const jump = useJumpUi()
+  const done = new Set(w.results.map((r) => r.blockId))
 
   return (
     <div className={cls}>
@@ -28,9 +31,9 @@ export function Header({ w, now, onExit, absolute }: Props) {
             <path d="M6 6l12 12M18 6L6 18" />
           </svg>
         </button>
-        <div className={styles.blockCount}>
-          BLOQUE {w.index + 1} / {blocks.length}
-        </div>
+        <button className={styles.blockCount} aria-label="Elegir otro ejercicio" onClick={jump.open}>
+          BLOQUE {w.index + 1} / {blocks.length} ▾
+        </button>
         <div className={styles.right}>
           {pip.manual && (
             <button
@@ -54,7 +57,7 @@ export function Header({ w, now, onExit, absolute }: Props) {
           <div key={b.id} className={styles.segment} style={{ flex: b.minutes }}>
             <div
               className={styles.fill}
-              style={{ width: i < w.index || w.stage === 'done' ? '100%' : i === w.index ? `${progress * 100}%` : '0%' }}
+              style={{ width: done.has(b.id) || w.stage === 'done' ? '100%' : i === w.index ? `${progress * 100}%` : '0%' }}
             />
           </div>
         ))}

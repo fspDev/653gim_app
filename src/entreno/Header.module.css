@@ -89,3 +89,8 @@
     transition-duration: 0s;
   }
 }
+button.blockCount {
+  min-height: 44px;
+  padding: 0 6px;
+  color: inherit;
+}

@@ -17,6 +17,8 @@ import { CircuitView } from './CircuitView'
 import { ExitSheet, type ExitKind } from './ExitSheet'
 import { LogSheet } from './LogSheet'
 import { NoteContext } from './noteContext'
+import { JumpContext } from './jumpContext'
+import { JumpSheet } from './JumpSheet'
 import { NoteSheet } from './NoteSheet'
 import { StrengthView } from './StrengthView'
 import { TimeView } from './TimeView'
@@ -106,6 +108,9 @@ function EntrenoRun({ initial }: { initial: Workout }) {
   const [noteOpen, setNoteOpen] = useState(false)
   const closeNote = useCallback(() => setNoteOpen(false), [])
   const openNote = useCallback(() => setNoteOpen(true), [])
+  const [jumpOpen, setJumpOpen] = useState(false)
+  const closeJump = useCallback(() => setJumpOpen(false), [])
+  const jumpUi = useMemo(() => ({ open: () => setJumpOpen(true) }), [])
 
   const handleExit = (kind: ExitKind) => {
     setExitOpen(false)
@@ -130,7 +135,9 @@ function EntrenoRun({ initial }: { initial: Workout }) {
   const noteUi = { available: !!(block?.note || block?.video), open: openNote }
   const wrap = (el: ReactElement) => (
     <PipContext.Provider value={pipUi}>
-      <NoteContext.Provider value={noteUi}>{el}</NoteContext.Provider>
+      <NoteContext.Provider value={noteUi}>
+        <JumpContext.Provider value={jumpUi}>{el}</JumpContext.Provider>
+      </NoteContext.Provider>
     </PipContext.Provider>
   )
   const run = w.run
@@ -143,6 +150,15 @@ function EntrenoRun({ initial }: { initial: Workout }) {
       blocksTotal={w.day.blocks.length}
       onContinue={closeExit}
       onExit={handleExit}
+    />
+  ) : jumpOpen ? (
+    <JumpSheet
+      w={w}
+      onPick={(index) => {
+        setJumpOpen(false)
+        dispatch({ type: 'JUMP', index, now: Date.now() })
+      }}
+      onClose={closeJump}
     />
   ) : noteOpen && block ? (
     <NoteSheet name={block.name} note={block.note} video={block.video} onClose={closeNote} />

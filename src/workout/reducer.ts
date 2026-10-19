@@ -27,6 +27,8 @@ export type WorkoutAction =
   // entre bloques
   | { type: 'BETWEEN_START'; now: number }
   | { type: 'BETWEEN_TOGGLE'; now: number }
+  // saltar a otro bloque (máquina ocupada): el que se deja queda pendiente
+  | { type: 'JUMP'; index: number; now: number }
   // cierre
   | { type: 'SET_FEELING'; value: number }
   | { type: 'EXIT_SAVE'; now: number }
@@ -37,6 +39,35 @@ const round1 = (n: number) => Math.round(n * 10) / 10
 export const secondsLeft = (end: number, now: number) => Math.max(0, Math.ceil((end - now) / 1000))
 
 export const currentBlock = (w: Workout): Block => w.day.blocks[w.index]
+
+/** Bloques terminados (por id). */
+export const doneIds = (w: Workout) => new Set(w.results.map((r) => r.blockId))
+
+/** El próximo bloque pendiente: el primero sin terminar después del actual; si no hay, el primero salteado. null si no queda ninguno. */
+export function nextIndex(w: Workout): number | null {
+  const done = doneIds(w)
+  const n = w.day.blocks.length
+  for (let k = 1; k < n; k++) {
+    const i = (w.index + k) % n
+    if (!done.has(w.day.blocks[i].id)) return i
+  }
+  return null
+}
+
+export const nextBlock = (w: Workout): Block | undefined => {
+  const i = nextIndex(w)
+  return i === null ? undefined : w.day.blocks[i]
+}
+
+/** Al volver a un bloque de fuerza que se dejó por la mitad, sigue en la serie que faltaba y con el último peso. */
+function resumeRun(w: Workout, index: number, now: number): BlockRun {
+  const block = w.day.blocks[index]
+  const run = initRun(block, now)
+  if (block.kind !== 'fuerza' || run.kind !== 'fuerza') return run
+  const logs = w.logs.filter((l) => l.blockId === block.id)
+  if (!logs.length) return run
+  return { ...run, serie: Math.min(block.series, logs.length + 1), weight: logs[logs.length - 1].weight }
+}
 
 function circuitStepRun(block: CircuitBlock, round: number, step: number, now: number): CircuitRun {
   const seconds = block.steps[step].seconds
@@ -79,7 +110,7 @@ export function createWorkout(day: Day, now: number, id: string = uuid(), defaul
 function completeBlock(w: Workout, now: number): Workout {
   const block = currentBlock(w)
   const results = [...w.results, { blockId: block.id, startedAt: w.blockStartedAt, endedAt: now }]
-  if (w.index >= w.day.blocks.length - 1) {
+  if (nextIndex({ ...w, results }) === null) {
     return { ...w, results, stage: 'done', estado: 'completo', finishedAt: now }
   }
   return { ...w, results, stage: 'between', betweenEnd: now + BETWEEN_SECONDS * 1000, betweenLeft: null }
@@ -87,8 +118,16 @@ function completeBlock(w: Workout, now: number): Workout {
 
 function startNextBlock(w: Workout, now: number): Workout {
   if (w.stage !== 'between') return w
-  const index = w.index + 1
-  return { ...w, index, stage: 'block', run: initRun(w.day.blocks[index], now), blockStartedAt: now, betweenLeft: null }
+  const index = nextIndex(w)
+  if (index === null) return w
+  return { ...w, index, stage: 'block', run: resumeRun(w, index, now), blockStartedAt: now, betweenLeft: null }
+}
+
+function jump(w: Workout, index: number, now: number): Workout {
+  const block = w.day.blocks[index]
+  if (!block || doneIds(w).has(block.id)) return w
+  if (w.stage === 'block' && index === w.index) return w
+  return { ...w, index, stage: 'block', run: resumeRun(w, index, now), blockStartedAt: now, betweenLeft: null }
 }
 
 function finishRest(w: Workout, now: number): Workout {
@@ -133,6 +172,8 @@ export function workoutReducer(w: Workout, action: WorkoutAction): Workout {
         return w.betweenLeft === null && action.now >= w.betweenEnd ? startNextBlock(w, action.now) : w
       case 'BETWEEN_START':
         return startNextBlock(w, action.now)
+      case 'JUMP':
+        return jump(w, action.index, action.now)
       case 'BETWEEN_TOGGLE': {
         if (w.betweenLeft !== null) return { ...w, betweenEnd: action.now + w.betweenLeft, betweenLeft: null }
         return { ...w, betweenLeft: Math.max(0, w.betweenEnd - action.now) }
@@ -146,6 +187,7 @@ export function workoutReducer(w: Workout, action: WorkoutAction): Workout {
 
   // stage === 'block'
   if (action.type === 'EXIT_SAVE') return { ...w, stage: 'done', estado: 'parcial', finishedAt: action.now }
+  if (action.type === 'JUMP') return jump(w, action.index, action.now)
 
   const block = currentBlock(w)
   const run = w.run

@@ -14,7 +14,7 @@ const at = (ms: number) => T0 + ms
 function atBlock(index: number): Workout {
   let w = createWorkout(DAY_B, T0, 'w1')
   for (let i = 0; i < index; i++) {
-    w = { ...w, stage: 'between', betweenEnd: T0 }
+    w = { ...w, stage: 'between', betweenEnd: T0, results: [...w.results, { blockId: w.day.blocks[w.index].id, startedAt: T0, endedAt: T0 }] }
     w = reduce(w, { type: 'BETWEEN_START', now: T0 })
   }
   return w
@@ -161,7 +161,7 @@ describe('entre bloques y cierre', () => {
   it('el último bloque cierra el entreno como completo', () => {
     const w = run(atBlock(7), { type: 'TICK', now: at(5 * 60_000) })
     expect(w).toMatchObject({ stage: 'done', estado: 'completo', finishedAt: at(5 * 60_000) })
-    expect(w.results).toHaveLength(1)
+    expect(w.results).toHaveLength(8)
   })
 
   it('guardar y terminar a mitad de entreno lo deja parcial; después solo acepta la sensación', () => {
@@ -210,5 +210,27 @@ describe('sugerencia de peso', () => {
   it('mira solo el último entreno de ese ejercicio', () => {
     const past = [...full('viejo', 100), ...full('nuevo', 200, 6), ...full('otro', 300).map((r) => ({ ...r, exerciseId: 'remo' }))]
     expect(suggestionFor(past, 'sent', 4)).toBe(0)
+  })
+})
+
+describe('saltar a otro bloque (máquina ocupada)', () => {
+  it('va al bloque elegido y el salteado vuelve después', () => {
+    let w = atBlock(1)
+    w = reduce(w, { type: 'DONE', now: at(0) })
+    w = reduce(w, { type: 'JUMP', index: 3, now: at(1000) })
+    expect(w.index).toBe(3)
+    expect(w.stage).toBe('block')
+    // terminar el 3 → el siguiente pendiente es el 4, no el 2
+    w = { ...w, stage: 'between', betweenEnd: T0, results: [...w.results, { blockId: w.day.blocks[3].id, startedAt: T0, endedAt: T0 }] }
+    w = reduce(w, { type: 'BETWEEN_START', now: at(2000) })
+    expect(w.index).toBe(4)
+    // al volver al 1, sigue en la serie 2
+    w = reduce(w, { type: 'JUMP', index: 1, now: at(3000) })
+    expect(w.index).toBe(1)
+    expect((w.run as StrengthRun).serie).toBe(2)
+  })
+  it('no salta a un bloque ya hecho', () => {
+    const w = atBlock(2)
+    expect(reduce(w, { type: 'JUMP', index: 0, now: at(0) })).toBe(w)
   })
 })

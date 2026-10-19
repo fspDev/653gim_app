@@ -1,6 +1,7 @@
 import { useEffect, type Dispatch, type ReactNode } from 'react'
 import { fmtTime } from '../format'
-import { BETWEEN_SECONDS, type WorkoutAction } from '../workout/reducer'
+import { BETWEEN_SECONDS, nextBlock, type WorkoutAction } from '../workout/reducer'
+import { useJumpUi } from './jumpContext'
 import { blockStats } from '../workout/selectors'
 import type { Workout } from '../workout/types'
 import styles from './BetweenView.module.css'
@@ -26,7 +27,8 @@ const kg = (n: number) => n.toLocaleString('es-AR')
 /** Bloque listo (BloqueListo.dc.html): resumen del bloque, el que sigue y una cuenta de 5 s que arranca sola. */
 export function BetweenView({ w, now, dispatch, onExit, overlay, inertFrame }: Props) {
   const done = w.day.blocks[w.index]
-  const next = w.day.blocks[w.index + 1]
+  const next = nextBlock(w)!
+  const jump = useJumpUi()
   const stats = blockStats(w, done.id)
   const paused = w.betweenLeft !== null
   const leftMs = paused ? w.betweenLeft! : Math.max(0, w.betweenEnd - now)
@@ -61,9 +63,9 @@ export function BetweenView({ w, now, dispatch, onExit, overlay, inertFrame }: P
               <path d="M6 6l12 12M18 6L6 18" />
             </svg>
           </button>
-          <div className={styles.count}>
-            BLOQUE {w.index + 1} / {w.day.blocks.length}
-          </div>
+          <button className={styles.count} aria-label="Elegir otro ejercicio" onClick={jump.open}>
+            BLOQUE {w.index + 1} / {w.day.blocks.length} ▾
+          </button>
           <div className={styles.spacer} />
         </div>
         <svg className={styles.check} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -87,7 +89,7 @@ export function BetweenView({ w, now, dispatch, onExit, overlay, inertFrame }: P
 
       <div className={styles.bottom}>
         <div className={styles.nextLabel}>
-          SIGUE · {w.index + 2} / {w.day.blocks.length}
+          SIGUE · {w.day.blocks.indexOf(next) + 1} / {w.day.blocks.length}
         </div>
         <div className={styles.nextName} style={{ fontSize: fitFont(next.name, 40) }}>
           {next.name.toUpperCase()}
@@ -119,6 +121,9 @@ export function BetweenView({ w, now, dispatch, onExit, overlay, inertFrame }: P
           </div>
         </div>
 
+        <button className={styles.other} onClick={jump.open}>
+          ¿Ocupada? Elegí otro ejercicio
+        </button>
         <div className={styles.actions}>
           <button className={styles.start} onClick={() => dispatch({ type: 'BETWEEN_START', now: Date.now() })}>
             EMPEZAR YA

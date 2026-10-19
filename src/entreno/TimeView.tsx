@@ -1,7 +1,7 @@
 import type { Dispatch, ReactNode } from 'react'
 import type { TimeBlock } from '../data'
 import { fmtTime } from '../format'
-import { secondsLeft, type WorkoutAction } from '../workout/reducer'
+import { secondsLeft, type WorkoutAction, nextBlock } from '../workout/reducer'
 import type { TimeRun, Workout } from '../workout/types'
 import { blockDetail } from './describe'
 import { fitFont } from './fit'
@@ -23,7 +23,7 @@ interface Props {
 
 /** Bloque por tiempo (Bici.dc.html): cuenta regresiva, pausa, ±1 min y el siguiente bloque asomando abajo. */
 export function TimeView({ w, block, run, now, dispatch, onExit, overlay, inertFrame }: Props) {
-  const next = w.day.blocks[w.index + 1]
+  const next = nextBlock(w)
   const paused = run.pausedLeft !== null
   const left = paused ? Math.ceil(run.pausedLeft! / 1000) : secondsLeft(run.endAt, now)
   const pct = Math.min(100, Math.max(0, (1 - left / run.total) * 100))
@@ -77,7 +77,7 @@ export function TimeView({ w, block, run, now, dispatch, onExit, overlay, inertF
         <div className={styles.next}>
           <div className={styles.nextTop}>
             <div className={styles.nextLabel}>
-              SIGUIENTE · {w.index + 2} / {w.day.blocks.length}
+              SIGUIENTE · {w.day.blocks.indexOf(next) + 1} / {w.day.blocks.length}
             </div>
             <div className={styles.nextIn}>en {fmtTime(left)}</div>
           </div>
