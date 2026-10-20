@@ -2,6 +2,7 @@ import { useEffect, type Dispatch, type ReactNode } from 'react'
 import { fmtTime } from '../format'
 import { BETWEEN_SECONDS, nextBlock, type WorkoutAction } from '../workout/reducer'
 import { useJumpUi } from './jumpContext'
+import { useNavigate } from 'react-router-dom'
 import { blockStats } from '../workout/selectors'
 import type { Workout } from '../workout/types'
 import styles from './BetweenView.module.css'
@@ -29,6 +30,7 @@ export function BetweenView({ w, now, dispatch, onExit, overlay, inertFrame }: P
   const done = w.day.blocks[w.index]
   const next = nextBlock(w)!
   const jump = useJumpUi()
+  const navigate = useNavigate()
   const stats = blockStats(w, done.id)
   const paused = w.betweenLeft !== null
   const leftMs = paused ? w.betweenLeft! : Math.max(0, w.betweenEnd - now)
@@ -66,7 +68,9 @@ export function BetweenView({ w, now, dispatch, onExit, overlay, inertFrame }: P
           <button className={styles.count} aria-label="Elegir otro ejercicio" onClick={jump.open}>
             BLOQUE {w.index + 1} / {w.day.blocks.length} ▾
           </button>
-          <div className={styles.spacer} />
+          <button className={styles.menu} aria-label="Ir al menú (el entreno sigue)" onClick={() => navigate('/')}>
+            MENÚ
+          </button>
         </div>
         <svg className={styles.check} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M4.5 12.5l5 5 10-11" />

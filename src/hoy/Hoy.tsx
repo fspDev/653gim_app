@@ -7,6 +7,9 @@ import { useDays } from '../rutina/useDays'
 import { streakWeeks } from '../stats'
 import { useLive } from '../useLive'
 import { clearActive, loadActive } from '../workout/persist'
+import { doneIds, nextIndex, secondsLeft } from '../workout/reducer'
+import { fmtTime } from '../format'
+import { useNow } from '../hooks'
 import { startWorkout } from '../workout/start'
 import { isPiPSupported, openPiP } from '../pip/pipEngine'
 import { getSettings } from '../settings'
@@ -53,6 +56,14 @@ function HoyDia({ days, active }: { days: Day[]; active: ReturnType<typeof loadA
   const day = active?.day ?? days.find((d) => d.id === chosen) ?? suggested
   const streak = streakWeeks(entrenos.map((e) => e.empezadoAt), today.getTime())
   const minutes = day.blocks.reduce((s, b) => s + b.minutes, 0)
+  // Entreno en curso: qué se hizo, en cuál está y cuál sigue (se puede venir acá en el descanso).
+  const now = useNow(1000)
+  const done = active ? doneIds(active) : new Set<string>()
+  const nowIdx = active?.stage === 'block' ? active.index : -1
+  const nextIdx = active ? nextIndex(active) : null
+  const run = active?.run
+  const rest = active?.stage === 'block' && run?.kind === 'fuerza' && run.phase === 'descanso' ? secondsLeft(run.restEnd, now) : null
+  const rowState = (b: Block, i: number) => (done.has(b.id) ? 'done' : i === nowIdx ? 'now' : i === nextIdx ? 'next' : undefined)
 
   const weekday = today.toLocaleDateString('es-AR', { weekday: 'long' })
   const first = profile?.nombre.trim().split(/\s+/)[0]
@@ -79,7 +90,7 @@ function HoyDia({ days, active }: { days: Day[]; active: ReturnType<typeof loadA
       </div>
 
       <div className={styles.greeting}>{greeting}</div>
-      <div className={styles.eyebrow}>{active ? 'ENTRENO EN CURSO' : day.id === suggested.id ? 'HOY TOCA' : 'ELEGISTE'}</div>
+      <div className={styles.eyebrow}>{active ? (rest !== null ? (rest > 0 ? `DESCANSO · ${fmtTime(rest)}` : 'DESCANSO TERMINADO') : 'ENTRENO EN CURSO') : day.id === suggested.id ? 'HOY TOCA' : 'ELEGISTE'}</div>
       <div className={styles.dayName}>{day.name.toUpperCase()}</div>
       <div className={styles.meta}>
         {minutes} min <span className={styles.sep}>·</span> {day.blocks.length} bloques
@@ -105,7 +116,7 @@ function HoyDia({ days, active }: { days: Day[]; active: ReturnType<typeof loadA
 
       <ol className={styles.list}>
         {day.blocks.map((b, i) => (
-          <li key={b.id} className={styles.row}>
+          <li key={b.id} className={styles.row} data-state={rowState(b, i)}>
             <span className={styles.n}>{i + 1}</span>
             <span className={styles.name}>{b.name}</span>
             <span className={styles.detail}>
@@ -116,6 +127,8 @@ function HoyDia({ days, active }: { days: Day[]; active: ReturnType<typeof loadA
               )}
               {blockDetail(b)}
             </span>
+            {rowState(b, i) === 'now' && <span className={styles.tag}>AHORA</span>}
+            {rowState(b, i) === 'next' && <span className={styles.tag}>SIGUE</span>}
           </li>
         ))}
       </ol>

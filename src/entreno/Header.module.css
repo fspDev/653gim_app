@@ -94,3 +94,19 @@ button.blockCount {
   padding: 0 6px;
   color: inherit;
 }
+
+.left {
+  display: flex;
+  align-items: center;
+}
+.menu {
+  min-height: 44px;
+  padding: 0 8px;
+  font-family: var(--font-label);
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: 0.06em;
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

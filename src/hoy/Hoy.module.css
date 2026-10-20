@@ -176,3 +176,21 @@
   vertical-align: -2px;
   color: var(--accent-ink);
 }
+
+.row[data-state='done'] {
+  opacity: 0.4;
+}
+.row[data-state='done'] .name {
+  text-decoration: line-through;
+}
+.row[data-state='now'] .name,
+.row[data-state='next'] .name {
+  font-weight: 800;
+}
+.tag {
+  font-family: var(--font-label);
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--accent-ink);
+}

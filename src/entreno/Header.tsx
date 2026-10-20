@@ -4,6 +4,7 @@ import type { Workout } from '../workout/types'
 import { usePipUi } from '../pip/context'
 import styles from './Header.module.css'
 import { useJumpUi } from './jumpContext'
+import { useNavigate } from 'react-router-dom'
 
 interface Props {
   w: Workout
@@ -21,16 +22,22 @@ export function Header({ w, now, onExit, absolute }: Props) {
   const cls = absolute ? styles.absolute : styles.flow
   const pip = usePipUi()
   const jump = useJumpUi()
+  const navigate = useNavigate()
   const done = new Set(w.results.map((r) => r.blockId))
 
   return (
     <div className={cls}>
       <div className={styles.topbar}>
-        <button className={styles.exit} aria-label="Salir del entrenamiento" onClick={onExit}>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-            <path d="M6 6l12 12M18 6L6 18" />
-          </svg>
-        </button>
+        <div className={styles.left}>
+          <button className={styles.exit} aria-label="Salir del entrenamiento" onClick={onExit}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+              <path d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
+          <button className={styles.menu} aria-label="Ir al menú (el entreno sigue)" onClick={() => navigate('/')}>
+            MENÚ
+          </button>
+        </div>
         <button className={styles.blockCount} aria-label="Elegir otro ejercicio" onClick={jump.open}>
           BLOQUE {w.index + 1} / {blocks.length} ▾
         </button>
