@@ -110,3 +110,12 @@ button.blockCount {
   text-decoration: underline;
   text-underline-offset: 3px;
 }
+/* Con ✕, MENÚ y FLOTANTE en la misma barra: que el contador no se parta en dos líneas. */
+.blockCount {
+  white-space: nowrap;
+  font-size: 16px;
+  letter-spacing: 0.04em;
+}
+.menu {
+  padding: 0 6px;
+}

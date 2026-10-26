@@ -192,3 +192,6 @@ button.count {
   text-decoration: underline;
   text-underline-offset: 3px;
 }
+.count {
+  white-space: nowrap;
+}
