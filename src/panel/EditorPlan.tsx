@@ -30,7 +30,7 @@ const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T
 const canon = (r: ERutina | null) => (r ? JSON.stringify({ n: r.nombre.trim(), d: toDayDocs(r, 0) }) : '')
 const draftKey = (sid: string) => `g653:borrador:${sid}`
 
-function readDraft(sid: string): ERutina | null {
+export function readDraft(sid: string): ERutina | null {
   try {
     const raw = sessionStorage.getItem(draftKey(sid))
     return raw ? (JSON.parse(raw) as ERutina) : null
@@ -38,7 +38,7 @@ function readDraft(sid: string): ERutina | null {
     return null
   }
 }
-function writeDraft(sid: string, r: ERutina | null) {
+export function writeDraft(sid: string, r: ERutina | null) {
   try {
     if (r) sessionStorage.setItem(draftKey(sid), JSON.stringify(r))
     else sessionStorage.removeItem(draftKey(sid))
@@ -48,7 +48,7 @@ function writeDraft(sid: string, r: ERutina | null) {
 }
 
 /** Ids nuevos para todo (al copiar el plan de otro estudiante). */
-function reId(r: ERutina): ERutina {
+export function reId(r: ERutina): ERutina {
   return { ...r, dias: r.dias.map((d) => ({ ...d, id: uuid(), bloques: d.bloques.map((b) => ({ ...b, id: uuid() })) })) }
 }
 

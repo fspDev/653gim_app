@@ -113,6 +113,11 @@ cases.push(
   ['653: otro profe edita su nombre y usuario', 'ALLOW', req(ADMIN2, 'update', 'g653Admins/' + ADMIN2, { uid: ADMIN2, nombre: 'B', username: 'b' }), { uid: ADMIN2, nombre: 'A', username: 'a' }],
   ['653: otro profe no cambia su uid', 'DENY', req(ADMIN2, 'update', 'g653Admins/' + ADMIN2, { uid: 'otro', nombre: 'A' }), { uid: ADMIN2, nombre: 'A' }],
   ['653: un profe no edita los datos de otro profe', 'DENY', req(PROFE, 'update', 'g653Admins/' + ADMIN2, { uid: ADMIN2, nombre: 'X' }), { uid: ADMIN2, nombre: 'A' }],
+  ['653: el profe guarda copias de los planes', 'ALLOW', req(PROFE, 'create', 'g653Students/s1/planes/p1', { nombre: 'Plan', dias: [] })],
+  ['653: otro profe lee los planes anteriores', 'ALLOW', req(ADMIN2, 'get', 'g653Students/s1/planes/p1')],
+  ['653: el socio no ve los planes anteriores', 'DENY', req(ALUMNO, 'get', 'g653Students/s1/planes/p1')],
+  ['653: el socio no escribe planes anteriores', 'DENY', req(ALUMNO, 'create', 'g653Students/s1/planes/p1', { nombre: 'Plan' })],
+  ['653: otro no lee planes ajenos', 'DENY', req(OTRO, 'get', 'g653Students/s1/planes/p1')],
   ['653: un socio ajeno sigue sin leer fichas', 'DENY', req(OTRO, 'get', 'g653Students/s1'), ficha],
 )
 

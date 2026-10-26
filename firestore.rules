@@ -151,6 +151,10 @@ service cloud.firestore {
         allow read: if g653Profe() || g653EsEstudiante(sid);
         allow write: if g653Profe();
       }
+      // Planes anteriores (una copia por cada vez que el profe publica): solo los ve el profe.
+      match /planes/{planId} {
+        allow read, write: if g653Profe();
+      }
       match /logs/{logId} {
         allow read, create, update: if g653Profe() || g653EsEstudiante(sid);
         allow delete: if g653Profe();

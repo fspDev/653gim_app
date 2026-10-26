@@ -7,12 +7,14 @@ import { EditorPlan } from './EditorPlan'
 import styles from './Estudiante.module.css'
 import { Evolucion } from './Evolucion'
 import { Ficha } from './Ficha'
+import { Historial } from './Historial'
 import { cuotaTone, lastLabel } from './listado'
 import { Registro } from './Registro'
 import ui from './ui.module.css'
 
 const TABS = [
   { to: '', label: 'Plan', end: true },
+  { to: 'historial', label: 'Historial' },
   { to: 'registro', label: 'Registro' },
   { to: 'evolucion', label: 'Evolución' },
   { to: 'cuotas', label: 'Cuotas', soloEstudiantes: true },
@@ -107,6 +109,7 @@ export function Estudiante({ sid: sidProp, propio = false }: { sid?: string; pro
 
       <Routes>
         <Route index element={<EditorPlan d={d} reload={reload} />} />
+        <Route path="historial" element={<Historial d={d} />} />
         <Route path="registro" element={<Registro d={d} reload={reload} />} />
         <Route path="evolucion" element={<Evolucion d={d} reload={reload} />} />
         {!propio && <Route path="cuotas" element={<Cuotas d={d} reload={reload} />} />}

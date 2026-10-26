@@ -60,7 +60,7 @@ export interface Resumen {
 }
 
 const sPath = (sid: string) => `${COL.students}/${sid}`
-const sub = (sid: string, name: 'days' | 'logs' | 'pagos' | 'medidas') => `${sPath(sid)}/${name}`
+const sub = (sid: string, name: 'days' | 'logs' | 'pagos' | 'medidas' | 'planes') => `${sPath(sid)}/${name}`
 
 const asStudent = (id: string, d: Record<string, unknown>): Estudiante => ({ id, ...(d as unknown as StudentDoc) })
 const asPago = (id: string, d: Record<string, unknown>): Pago => ({ id, ...(d as unknown as Omit<Pago, 'id'>) })
@@ -200,7 +200,7 @@ export async function updateFicha(sid: string, patch: Pick<StudentDoc, 'nombre' 
 
 /** Borra todo del estudiante. Su cuenta interna queda sin acceso (sin servidor no se puede borrar). */
 export async function bajaEstudiante(e: Estudiante): Promise<void> {
-  const subs = await Promise.all((['days', 'logs', 'pagos', 'medidas'] as const).map((n) => store.list(sub(e.id, n)).then((docs) => docs.map((d) => `${sub(e.id, n)}/${d.id}`))))
+  const subs = await Promise.all((['days', 'logs', 'pagos', 'medidas', 'planes'] as const).map((n) => store.list(sub(e.id, n)).then((docs) => docs.map((d) => `${sub(e.id, n)}/${d.id}`))))
   const ops: WriteOp[] = subs.flat().map((path) => ({ type: 'delete', path }))
   ops.push({ type: 'delete', path: sPath(e.id) }, { type: 'delete', path: `${COL.logins}/${e.username}` })
   await store.write(ops)
@@ -222,9 +222,11 @@ export async function publicarPlan(sid: string, rutina: ERutina, version: number
   const keep = new Set(docs.map((d) => d.id))
   const server = await store.list(sub(sid, 'days'))
   const next = version + 1
-  const ops: WriteOp[] = docs.map(({ id, ...data }) => ({ type: 'set', path: `${sub(sid, 'days')}/${id}`, data }))
+  const ops: WriteOp[] = [...(await archivarAnterior(sid, now)), ...docs.map(({ id, ...data }): WriteOp => ({ type: 'set', path: `${sub(sid, 'days')}/${id}`, data }))]
   for (const d of server) if (!keep.has(d.id)) ops.push({ type: 'delete', path: `${sub(sid, 'days')}/${d.id}` })
-  ops.push({ type: 'update', path: sPath(sid), data: { rutina: { nombre: rutina.nombre.trim() || 'Plan', version: next, publicadaAt: now, dias: docs.length } } })
+  const nombre = rutina.nombre.trim() || 'Plan'
+  ops.push({ type: 'update', path: sPath(sid), data: { rutina: { nombre, version: next, publicadaAt: now, dias: docs.length } } })
+  ops.push(await archivarNuevo(sid, { nombre, version: next, publicadaAt: now, dias: docs }, now))
   await store.write(ops)
 
   // Biblioteca: cada ejercicio de fuerza queda (con su video) para el próximo plan.
@@ -239,6 +241,63 @@ export async function publicarPlan(sid: string, rutina: ERutina, version: number
     }))
   if (lib.length) await store.write(lib).catch(() => {})
   return next
+}
+
+/* ───────── Historial de planes ───────── */
+
+/** Cada vez que se publica queda una copia en `g653Students/{sid}/planes/{id}`. */
+interface PlanDoc {
+  nombre: string
+  version: number
+  publicadaAt: number
+  dias: DayDoc[]
+}
+
+export interface PlanAnterior {
+  id: string
+  nombre: string
+  publicadaAt: number
+  /** Es el que está publicado ahora. */
+  vigente: boolean
+  rutina: ERutina
+}
+
+/** Publicaciones más cercanas que esto (retoques) pisan la copia anterior en vez de sumar otra al historial. */
+const RETOQUE_MS = 6 * 60 * 60 * 1000
+
+const tieneEjercicios = (dias: DayDoc[] | undefined) => !!dias?.some((d) => (d.bloques ?? []).some((b) => b.tipo !== 'tiempo'))
+
+/** Si todavía no hay historial, el plan que se va a reemplazar se guarda primero (el de antes de esta función). */
+async function archivarAnterior(sid: string, now: number): Promise<WriteOp[]> {
+  const planes = await store.list(sub(sid, 'planes'))
+  if (planes.length) return []
+  const [ficha, days] = await Promise.all([store.get(sPath(sid)), store.list(sub(sid, 'days'))])
+  const meta = (ficha?.rutina ?? null) as RutinaMeta | null
+  const dias = days.map((d) => ({ ...(d.data as Omit<DayDoc, 'id'>), id: d.id }))
+  if (!tieneEjercicios(dias)) return []
+  const publicadaAt = meta?.publicadaAt || (ficha as { createdAt?: number } | null)?.createdAt || now - 1
+  const plan: PlanDoc = { nombre: meta?.nombre || 'Plan', version: meta?.version ?? 0, publicadaAt, dias }
+  return [{ type: 'set', path: `${sub(sid, 'planes')}/p${publicadaAt}`, data: plan as unknown as Record<string, unknown> }]
+}
+
+/** La copia del plan que se publica. Un retoque reciente reemplaza la última copia. */
+async function archivarNuevo(sid: string, plan: PlanDoc, now: number): Promise<WriteOp> {
+  const planes = await store.list(sub(sid, 'planes'))
+  const ultimo = [...planes].sort((a, b) => Number(b.data.publicadaAt ?? 0) - Number(a.data.publicadaAt ?? 0))[0]
+  const id = ultimo && now - Number(ultimo.data.publicadaAt ?? 0) < RETOQUE_MS ? ultimo.id : `p${now}`
+  return { type: 'set', path: `${sub(sid, 'planes')}/${id}`, data: plan as unknown as Record<string, unknown> }
+}
+
+/** Los planes que tuvo el estudiante, del más nuevo al más viejo. */
+export async function cargarHistorial(sid: string, vigenteAt: number): Promise<PlanAnterior[]> {
+  const docs = await store.list(sub(sid, 'planes'))
+  return docs
+    .map((d) => {
+      const p = d.data as unknown as PlanDoc
+      const row = rutinaFromDocs(p.dias ?? [], { nombre: p.nombre, version: p.version, publicadaAt: p.publicadaAt })
+      return { id: d.id, nombre: p.nombre || 'Plan', publicadaAt: Number(p.publicadaAt ?? 0), vigente: Number(p.publicadaAt ?? 0) === vigenteAt && vigenteAt > 0, rutina: { ...fromRow(row), nombre: p.nombre || 'Plan' } }
+    })
+    .sort((a, b) => b.publicadaAt - a.publicadaAt)
 }
 
 /* ───────── Biblioteca ───────── */
