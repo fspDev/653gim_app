@@ -45,6 +45,11 @@ async function resolveProfile(user: AuthUser): Promise<Profile | null> {
   if (profe?.uid === user.uid) {
     return { id: user.uid, rol: 'profe', sid: `yo-${user.uid}`, nombre: profe.nombre, apellido: profe.apellido ?? '', username: profe.username, profeNombre: profe.nombre }
   }
+  // Otro profe dado de alta por el principal.
+  const admin = (await store.get(`${COL.admins}/${user.uid}`)) as Omit<ProfeConfig, 'uid'> | null
+  if (admin) {
+    return { id: user.uid, rol: 'profe', sid: `yo-${user.uid}`, nombre: admin.nombre, apellido: admin.apellido ?? '', username: admin.username, profeNombre: admin.nombre }
+  }
   const [mine] = await store.list(COL.students, { where: ['uid', user.uid], limit: 1 })
   if (!mine) return null
   const d = mine.data as { nombre?: string; apellido?: string; username?: string }

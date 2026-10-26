@@ -1,10 +1,10 @@
-import { useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/context'
 import { normalizeUsername, problemaClave } from '../cuentas'
 import { updateSettings, useSettings } from '../settings'
 import { PALETTES } from '../theme'
-import { guardarCuentaProfe } from './api'
+import { altaAdmin, bajaAdmin, cargarAdmins, guardarCuentaProfe, type AdminInfo } from './api'
 import styles from './MiCuenta.module.css'
 import ui from './ui.module.css'
 
@@ -18,6 +18,7 @@ export function MiCuenta() {
       <div className={ui.sub}>Tus datos para entrar al panel y a la app.</div>
       <Datos />
       <Clave />
+      <Admins />
       <Colores />
       <h2 className={ui.section}>MI ENTRENO</h2>
       <p className={ui.hint}>Con la misma cuenta podés entrenar tu propia rutina en la app, como un estudiante.</p>
@@ -148,6 +149,107 @@ function Clave() {
         </button>
       </div>
     </form>
+  )
+}
+
+function Admins() {
+  const { profile } = useAuth()
+  const [lista, setLista] = useState<AdminInfo[] | null>(null)
+  const [nombre, setNombre] = useState('')
+  const [apellido, setApellido] = useState('')
+  const [clave, setClave] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const recargar = useCallback(() => {
+    cargarAdmins()
+      .then(setLista)
+      .catch(() => setLista([]))
+  }, [])
+  useEffect(recargar, [recargar])
+  const problema = clave ? problemaClave(clave) : null
+  const ok = !!nombre.trim() && !!apellido.trim() && !!clave && !problemaClave(clave)
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault()
+    if (!ok) return
+    setBusy(true)
+    setMsg(null)
+    try {
+      const { username } = await altaAdmin({ nombre, apellido, clave })
+      setMsg({ ok: true, text: `✓ Listo. Entra con "${username}" y la contraseña que pusiste.` })
+      setNombre('')
+      setApellido('')
+      setClave('')
+      recargar()
+    } catch (err) {
+      setMsg({ ok: false, text: err instanceof Error && err.message === 'Falta el nombre.' ? err.message : 'No se pudo crear. Probá de nuevo.' })
+    }
+    setBusy(false)
+  }
+
+  const baja = async (a: AdminInfo) => {
+    if (!window.confirm(`¿Sacarle el acceso a ${a.nombre} ${a.apellido}? Ya no va a poder entrar al panel.`)) return
+    try {
+      await bajaAdmin(a)
+      recargar()
+    } catch {
+      setMsg({ ok: false, text: 'No se pudo dar de baja. Probá de nuevo.' })
+    }
+  }
+
+  return (
+    <>
+      <h2 className={ui.section}>PROFES CON ACCESO AL PANEL</h2>
+      <p className={ui.hint}>Todos ven y editan lo mismo: socios, planes, cuotas y biblioteca.</p>
+      <ul style={{ listStyle: 'none', padding: 0, margin: '12px 0 0' }}>
+        {(lista ?? []).map((a) => (
+          <li key={a.uid} style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 48, borderBottom: '1px solid rgba(127,127,127,.25)' }}>
+            <span style={{ flex: 1, fontWeight: 700 }}>
+              {a.nombre} {a.apellido}
+              <span style={{ display: 'block', fontWeight: 500, fontSize: 14, opacity: 0.65 }}>
+                {a.username}
+                {a.uid === profile?.id ? ' · vos' : a.principal ? ' · principal' : ''}
+              </span>
+            </span>
+            {!a.principal && a.uid !== profile?.id && (
+              <button type="button" className={ui.ghost} onClick={() => void baja(a)}>
+                Dar de baja
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
+      <form onSubmit={submit}>
+        <h2 className={ui.section}>AGREGAR OTRO PROFE</h2>
+        <div className={ui.cols2}>
+          <label>
+            <span className={ui.label} style={{ marginTop: 0 }}>
+              NOMBRE
+            </span>
+            <input className={ui.input} value={nombre} onChange={(e) => setNombre(e.target.value)} autoComplete="off" />
+          </label>
+          <label>
+            <span className={ui.label} style={{ marginTop: 0 }}>
+              APELLIDO
+            </span>
+            <input className={ui.input} value={apellido} onChange={(e) => setApellido(e.target.value)} autoComplete="off" />
+          </label>
+        </div>
+        <label>
+          <span className={ui.label}>CONTRASEÑA INICIAL</span>
+          <input className={ui.input} type="text" value={clave} onChange={(e) => setClave(e.target.value)} autoCapitalize="none" spellCheck={false} autoComplete="off" />
+        </label>
+        <div className={ui.hint} style={{ marginTop: 6 }}>
+          {problema ?? 'Se la pasás vos. Después la cambia en Mi cuenta. Entra con su nombre y apellido.'}
+        </div>
+        {msg && <p className={msg.ok ? ui.ok : ui.error}>{msg.text}</p>}
+        <div className={ui.actions}>
+          <button type="submit" className={ui.secondary} disabled={!ok || busy}>
+            {busy ? 'CREANDO…' : 'CREAR PROFE'}
+          </button>
+        </div>
+      </form>
+    </>
   )
 }
 

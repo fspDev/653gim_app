@@ -103,9 +103,11 @@ service cloud.firestore {
     // ---- 653 Gym & Fitness (versión con panel de AM: colecciones g653*) ----
     // Un profe y sus estudiantes. Los estudiantes entran con una cuenta interna que el profe crea;
     // `g653Students/{sid}.uid` dice cuál es la cuenta vigente (cambia cuando el profe resetea la contraseña).
+    // Profe: el de g653Config/profe (el primero) o cualquiera dado de alta en g653Admins por otro profe.
     function g653Profe() {
-      return request.auth != null &&
-        get(/databases/$(database)/documents/g653Config/profe).data.uid == request.auth.uid;
+      return request.auth != null && (
+        get(/databases/$(database)/documents/g653Config/profe).data.uid == request.auth.uid ||
+        exists(/databases/$(database)/documents/g653Admins/$(request.auth.uid)));
     }
     function g653EsEstudiante(sid) {
       return request.auth != null &&
@@ -121,6 +123,15 @@ service cloud.firestore {
       allow update: if request.auth != null && resource.data.uid == request.auth.uid
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nombre', 'apellido', 'username']);
       allow delete: if false;
+    }
+
+    // Otros profes. Los da de alta o de baja un profe (nadie se saca a sí mismo); cada uno edita su nombre y usuario.
+    match /g653Admins/{uid} {
+      allow read: if g653Profe();
+      allow create: if g653Profe() && request.resource.data.uid == uid;
+      allow update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nombre', 'apellido', 'username']);
+      allow delete: if g653Profe() && request.auth.uid != uid;
     }
 
     // Usuario ("nombre.apellido") → cuenta interna. Se lee de a uno antes de entrar; no se puede listar.

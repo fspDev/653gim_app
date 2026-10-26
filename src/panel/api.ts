@@ -320,9 +320,56 @@ export async function guardarCuentaProfe(actual: { id: string; username: string 
       { type: 'delete', path: `${COL.logins}/${actual.username}` },
     )
   }
-  ops.push({ type: 'update', path: `${COL.config}/profe`, data: { nombre: d.nombre.trim(), apellido: d.apellido.trim(), username } })
+  // El profe principal vive en g653Config/profe; los otros, en g653Admins/{uid}.
+  const principal = ((await store.get(`${COL.config}/profe`)) as { uid?: string } | null)?.uid === actual.id
+  ops.push({ type: 'update', path: principal ? `${COL.config}/profe` : `${COL.admins}/${actual.id}`, data: { nombre: d.nombre.trim(), apellido: d.apellido.trim(), username } })
   if (await store.get(sPath(fichaProfeId(actual.id)))) ops.push({ type: 'update', path: sPath(fichaProfeId(actual.id)), data: { nombre: d.nombre.trim(), apellido: d.apellido.trim(), username } })
   await store.write(ops)
+}
+
+/* ───────── Otros profes ───────── */
+
+export interface AdminInfo {
+  uid: string
+  nombre: string
+  apellido: string
+  username: string
+  /** El primero: no se puede dar de baja. */
+  principal: boolean
+}
+
+export async function cargarAdmins(): Promise<AdminInfo[]> {
+  const cfg = (await store.get(`${COL.config}/profe`)) as { uid?: string; nombre?: string; apellido?: string; username?: string } | null
+  const docs = await store.list(COL.admins)
+  const otros = docs.map((d) => ({ uid: d.id, nombre: String(d.data.nombre ?? ''), apellido: String(d.data.apellido ?? ''), username: String(d.data.username ?? ''), principal: false }))
+  const principal = cfg?.uid ? [{ uid: cfg.uid, nombre: cfg.nombre ?? '', apellido: cfg.apellido ?? '', username: cfg.username ?? '', principal: true }] : []
+  return [...principal, ...otros.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))]
+}
+
+/** Da de alta a otro profe: crea su cuenta interna y le da acceso al panel. Entra con "nombre apellido" y la clave que le pongas. */
+export async function altaAdmin(d: { nombre: string; apellido: string; clave: string }): Promise<{ username: string }> {
+  const base = usernameFrom(d.nombre, d.apellido)
+  if (!base) throw new Error('Falta el nombre.')
+  const taken = new Set<string>()
+  for (let u = base, n = 2; ; u = `${base}${n++}`) {
+    if (!(await store.get(`${COL.logins}/${u}`))) break
+    taken.add(u)
+  }
+  const username = nextFreeUsername(base, (u) => taken.has(u))
+  const { uid, email } = await crearCuenta(username, d.clave)
+  await store.write([
+    { type: 'set', path: `${COL.admins}/${uid}`, data: { uid, nombre: d.nombre.trim(), apellido: d.apellido.trim(), username, createdAt: Date.now() } },
+    { type: 'set', path: `${COL.logins}/${username}`, data: { email, rol: 'profe' } },
+  ])
+  return { username }
+}
+
+/** Le saca el acceso de profe (la cuenta queda sin acceso a nada). Sus datos propios no se borran. */
+export async function bajaAdmin(a: { uid: string; username: string }): Promise<void> {
+  await store.write([
+    { type: 'delete', path: `${COL.admins}/${a.uid}` },
+    { type: 'delete', path: `${COL.logins}/${a.username}` },
+  ])
 }
 
 /* ───────── Cuotas ───────── */

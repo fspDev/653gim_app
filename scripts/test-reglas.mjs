@@ -34,6 +34,9 @@ const mocks = (profeExiste = true) => [
   { function: 'get', args: [{ exactValue: `${D}/amStudents/s1` }], result: { value: { data: ficha } } },
   { function: 'get', args: [{ exactValue: `${D}/g653Config/profe` }], result: profeExiste ? { value: { data: { uid: PROFE } } } : { undefined: {} } },
   { function: 'get', args: [{ exactValue: `${D}/g653Students/s1` }], result: { value: { data: ficha } } },
+  // Otro profe dado de alta en g653Admins.
+  { function: 'exists', args: [{ exactValue: `${D}/g653Admins/uid-admin2` }], result: { value: true } },
+  { function: 'exists', args: [{ anyValue: {} }], result: { value: false } },
   { function: 'get', args: [{ anyValue: {} }], result: { value: { data: { role: 'client' } } } },
 ]
 
@@ -89,6 +92,29 @@ const g653 = cases
     return [`653: ${name}`, nuevoProfe ? 'DENY' : exp, { ...rq, path }, resource, profeExiste]
   })
 cases.push(...g653)
+
+// Varios profes (g653Admins).
+const ADMIN2 = 'uid-admin2'
+cases.push(
+  ['653: otro profe lee las fichas', 'ALLOW', req(ADMIN2, 'get', 'g653Students/s1'), ficha],
+  ['653: otro profe publica planes', 'ALLOW', req(ADMIN2, 'create', 'g653Students/s1/days/d1', { bloques: [] })],
+  ['653: otro profe da de alta socios', 'ALLOW', req(ADMIN2, 'create', 'g653Students/s2', { uid: 'x' })],
+  ['653: otro profe crea usuarios', 'ALLOW', req(ADMIN2, 'create', 'g653Logins/x', { email: 'x', rol: 'profe' })],
+  ['653: el profe da de alta a otro profe', 'ALLOW', req(PROFE, 'create', 'g653Admins/nuevo', { uid: 'nuevo', nombre: 'A' })],
+  ['653: no se da de alta con un uid que no es el del documento', 'DENY', req(PROFE, 'create', 'g653Admins/nuevo', { uid: 'otro', nombre: 'A' })],
+  ['653: un socio no se da de alta como profe', 'DENY', req(ALUMNO, 'create', 'g653Admins/' + ALUMNO, { uid: ALUMNO, nombre: 'A' })],
+  ['653: sin sesión no se da de alta', 'DENY', req(null, 'create', 'g653Admins/x', { uid: 'x' })],
+  ['653: otro profe da de alta a un tercero', 'ALLOW', req(ADMIN2, 'create', 'g653Admins/tercero', { uid: 'tercero', nombre: 'T' })],
+  ['653: un profe da de baja a otro', 'ALLOW', req(PROFE, 'delete', 'g653Admins/' + ADMIN2), { uid: ADMIN2 }],
+  ['653: un profe no se da de baja a sí mismo', 'DENY', req(ADMIN2, 'delete', 'g653Admins/' + ADMIN2), { uid: ADMIN2 }],
+  ['653: un socio no da de baja profes', 'DENY', req(ALUMNO, 'delete', 'g653Admins/' + ADMIN2), { uid: ADMIN2 }],
+  ['653: el profe lee la lista de profes', 'ALLOW', req(PROFE, 'list', 'g653Admins/x')],
+  ['653: un socio no lee la lista de profes', 'DENY', req(ALUMNO, 'list', 'g653Admins/x')],
+  ['653: otro profe edita su nombre y usuario', 'ALLOW', req(ADMIN2, 'update', 'g653Admins/' + ADMIN2, { uid: ADMIN2, nombre: 'B', username: 'b' }), { uid: ADMIN2, nombre: 'A', username: 'a' }],
+  ['653: otro profe no cambia su uid', 'DENY', req(ADMIN2, 'update', 'g653Admins/' + ADMIN2, { uid: 'otro', nombre: 'A' }), { uid: ADMIN2, nombre: 'A' }],
+  ['653: un profe no edita los datos de otro profe', 'DENY', req(PROFE, 'update', 'g653Admins/' + ADMIN2, { uid: ADMIN2, nombre: 'X' }), { uid: ADMIN2, nombre: 'A' }],
+  ['653: un socio ajeno sigue sin leer fichas', 'DENY', req(OTRO, 'get', 'g653Students/s1'), ficha],
+)
 
 const testCases = cases.map(([, expectation, request, resource, profeExiste]) => ({
   expectation,
