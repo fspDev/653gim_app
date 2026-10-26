@@ -8,7 +8,7 @@ import type { Data } from './types'
 
 /**
  * Datos de ejemplo del modo demo. Cuentas (solo existen en este navegador):
- * profe andres.millares / demo1234 · estudiantes juan.perez, lucia.gomez y martin.diaz / demo1234.
+ * profe admin / demo1234 · estudiantes juan.perez, lucia.gomez y martin.diaz / demo1234.
  */
 
 const DAY = 24 * 60 * 60 * 1000
@@ -100,10 +100,10 @@ export function demoSeed(now = Date.now()) {
   const docs: Record<string, Data> = {}
   const users: Record<string, { uid: string; password: string }> = {}
 
-  const profeEmail = emailFor('andres.millares')
+  const profeEmail = emailFor('admin')
   users[profeEmail] = { uid: 'demo-profe', password: DEMO_CLAVE }
-  docs[`${COL.config}/profe`] = { uid: 'demo-profe', nombre: 'Andrés', apellido: 'Millares', username: 'andres.millares', createdAt: now - 120 * DAY }
-  docs[`${COL.logins}/andres.millares`] = { email: profeEmail, rol: 'profe' }
+  docs[`${COL.config}/profe`] = { uid: 'demo-profe', nombre: 'Agus', apellido: 'Admin', username: 'admin', createdAt: now - 120 * DAY }
+  docs[`${COL.logins}/admin`] = { email: profeEmail, rol: 'profe' }
 
   const actual = periodoOf(new Date(now))
   const alumnos = [
@@ -138,6 +138,31 @@ export function demoSeed(now = Date.now()) {
       const periodo = addMonths(actual, m)
       docs[`${COL.students}/${a.sid}/pagos/pago-${periodo}`] = { periodo, monto: 35000, fecha: `${periodo}-05`, medio: m === 0 ? 'transferencia' : 'efectivo', nota: '', createdAt: now }
     }
+  }
+
+  // Historial de planes de Juan: uno de adaptación antes del actual.
+  {
+    const juan = alumnos[0]
+    const actualPlan = planJuan()
+    const previo: ERutina = {
+      ...actualPlan,
+      nombre: 'Adaptación',
+      dias: actualPlan.dias.map((d) => ({
+        ...d,
+        bloques: d.bloques.map((b) =>
+          b.tipo !== 'fuerza'
+            ? b
+            : b.nombre === 'Press banca'
+              ? { ...b, nombre: 'Press de pecho en máquina', ejercicioId: 'press-de-pecho-en-maquina', series: 3, reps: 12, pesoKg: 20 }
+              : b.nombre === 'Peso muerto rumano'
+                ? { ...b, nombre: 'Hip thrust', ejercicioId: 'hip-thrust', series: 3, reps: 12, pesoKg: 30 }
+                : { ...b, series: 3, reps: 12, pesoKg: Math.max(0, b.pesoKg - 10) },
+        ),
+      })),
+    }
+    const tPrevio = juan.alta - 40 * DAY
+    docs[`${COL.students}/demo-juan/planes/p${tPrevio}`] = { nombre: previo.nombre, version: 0, publicadaAt: tPrevio, dias: toDayDocs(previo, tPrevio) }
+    docs[`${COL.students}/demo-juan/planes/p${juan.alta + DAY}`] = { nombre: actualPlan.nombre, version: 1, publicadaAt: juan.alta + DAY, dias: toDayDocs(actualPlan, juan.alta + DAY) }
   }
 
   // Evolución de Juan: peso y cintura cada tres semanas.

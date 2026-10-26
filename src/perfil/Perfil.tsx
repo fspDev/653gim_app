@@ -182,7 +182,7 @@ export function Perfil() {
             <button
               className={styles.small}
               onClick={async () => {
-                const ok = await showAlert('Así te avisa AM 💪', 'Cuando termine el descanso vas a sentir esta vibración.', 'am-prueba')
+                const ok = await showAlert('Así te avisa el 653 💪', 'Cuando termine el descanso vas a sentir esta vibración.', 'g653-prueba')
                 setProbado(ok ? 'Enviado. ¿Vibró?' : 'No se pudo mandar')
               }}
             >
